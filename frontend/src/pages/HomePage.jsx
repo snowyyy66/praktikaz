@@ -78,7 +78,10 @@ export default function HomePage() {
           {products.map(product => (
             <NavLink to={`/product/${product.id}`} key={product.id} className="product-card">
               <div className="card-image">
-                <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase() || 'ФТ'}</div>
+                {product.images?.[0]
+                  ? <img src={product.images[0]} alt={product.title} className="card-img" loading="lazy" />
+                  : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase() || 'ФТ'}</div>
+                }
                 <div className="card-badges">
                   <div className="badge"><Eye size={11} /> {product.views}</div>
                   <div className="badge condition-badge">{product.condition}</div>

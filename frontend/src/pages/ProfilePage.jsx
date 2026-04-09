@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { User, Star, MapPin, Phone, Mail, Package, Eye, Heart, TrendingUp, ShoppingCart, Calendar, Edit3 } from 'lucide-react';
+import { User, Star, MapPin, Phone, Mail, Package, Eye, Heart, TrendingUp, ShoppingCart, Calendar, Edit3, Camera } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './ProfilePage.css';
 
@@ -30,6 +30,14 @@ export default function ProfilePage() {
   }, []);
 
   const handleSaveProfile = async () => {
+    if (editForm.phone && !/^(\+7|8)[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/.test(editForm.phone)) {
+      alert('Неверный формат телефона. Пример: +7 (999) 123-45-67');
+      return;
+    }
+    if (editForm.username.trim().length < 2) {
+      alert('Имя пользователя слишком короткое');
+      return;
+    }
     try {
       await api.updateUser(getUserId(), editForm);
       setUser(prev => ({ ...prev, ...editForm }));
@@ -48,7 +56,20 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="profile-header">
         <div className="profile-avatar">
-          <User size={48} />
+          {user.avatar ? (
+            <img src={`http://localhost:3000${user.avatar}`} alt={user.username} className="avatar-img" />
+          ) : (
+            <User size={48} />
+          )}
+          <label className="avatar-upload-btn" title="Сменить фото">
+            <Camera size={14} />
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              const res = await api.uploadAvatar(getUserId(), file);
+              if (res.avatar) setUser(prev => ({ ...prev, avatar: res.avatar }));
+            }} />
+          </label>
         </div>
         
         {isEditing ? (
@@ -147,7 +168,10 @@ export default function ProfilePage() {
             {products.slice(0, 4).map(p => (
               <NavLink to={`/product/${p.id}`} key={p.id} className="mini-card">
                 <div className="mini-card-img">
-                  <div className="image-placeholder">{p.category_name?.substring(0,2).toUpperCase()}</div>
+                  {p.images?.[0]
+                    ? <img src={p.images[0]} alt={p.title} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loading="lazy" />
+                    : <div className="image-placeholder">{p.category_name?.substring(0, 2).toUpperCase()}</div>
+                  }
                 </div>
                 <div className="mini-card-info">
                   <span className="mini-title">{p.title}</span>
