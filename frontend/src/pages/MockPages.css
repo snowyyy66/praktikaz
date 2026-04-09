@@ -1,0 +1,41 @@
+.mock-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+}
+
+.mock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  max-width: 400px;
+}
+
+.mock-icon {
+  color: var(--accent);
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+
+.mock-container h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.mock-container p {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.mock-sub {
+  font-size: 13px !important;
+  margin-top: 12px;
+  opacity: 0.7;
+}
