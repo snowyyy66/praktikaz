@@ -141,134 +141,188 @@ const CITIES = [
   'Краснодар', 'Воронеж', 'Омск', 'Пермь', 'Тюмень', 'Сочи',
 ];
 
-// Маппинг ключевых слов из названия товара → flickr-запрос
-const TITLE_KEYWORDS = [
-  // Транспорт
-  [/bmw/i,            'bmw,car'],
-  [/mercedes/i,       'mercedes,car'],
-  [/toyota/i,         'toyota,car'],
-  [/audi/i,           'audi,car'],
-  [/kia/i,            'kia,car'],
-  [/hyundai/i,        'hyundai,car'],
-  [/volkswagen|vw/i,  'volkswagen,car'],
-  [/ford/i,           'ford,car'],
-  [/mazda/i,          'mazda,car'],
-  [/honda/i,          'honda,car'],
-  [/lexus/i,          'lexus,car'],
-  [/skoda/i,          'skoda,car'],
-  [/nissan/i,         'nissan,car'],
-  [/land rover|range rover/i, 'range-rover,car'],
-  [/porsche/i,        'porsche,car'],
-  [/volvo/i,          'volvo,car'],
-  [/subaru/i,         'subaru,car'],
-  [/jeep/i,           'jeep,car'],
-  [/tesla/i,          'tesla,electric-car'],
-  [/chevrolet/i,      'chevrolet,car'],
-  [/genesis/i,        'genesis,car'],
-  [/mitsubishi/i,     'mitsubishi,car'],
-  [/yamaha|kawasaki|ducati/i, 'motorcycle,bike'],
-  // Недвижимость
-  [/студия/i,         'studio,apartment'],
-  [/квартир/i,        'apartment,interior'],
-  [/коттедж|дом/i,    'house,real-estate'],
-  [/таунхаус/i,       'townhouse,real-estate'],
-  [/апартамент/i,     'apartment,luxury'],
-  // Электроника
-  [/iphone/i,         'iphone,apple'],
-  [/samsung.*galaxy/i,'samsung,smartphone'],
-  [/macbook/i,        'macbook,laptop'],
-  [/ipad/i,           'ipad,tablet'],
-  [/playstation|ps5/i,'playstation,gaming'],
-  [/xbox/i,           'xbox,gaming'],
-  [/nintendo/i,       'nintendo,gaming'],
-  [/airpods/i,        'airpods,headphones'],
-  [/sony.*wh|наушник/i,'headphones,audio'],
-  [/dji/i,            'drone,aerial'],
-  [/gopro/i,          'gopro,camera'],
-  [/dyson/i,          'dyson,vacuum'],
-  [/кофемашин/i,      'coffee,machine'],
-  [/робот.*пылесос/i, 'robot,vacuum'],
-  [/телевизор/i,      'television,tv'],
-  [/монитор/i,        'monitor,computer'],
-  [/видеокарт/i,      'graphics-card,computer'],
-  [/процессор/i,      'processor,computer'],
-  [/самокат/i,        'electric-scooter'],
-  [/велосипед/i,      'bicycle,bike'],
-  [/фотоаппарат|камер/i,'camera,photography'],
-  [/гитар/i,          'guitar,music'],
-  [/синтезатор/i,     'synthesizer,music'],
-  // Одежда
-  [/jordan/i,         'jordan,sneakers'],
-  [/yeezy/i,          'yeezy,sneakers'],
-  [/new balance/i,    'new-balance,sneakers'],
-  [/nike/i,           'nike,shoes'],
-  [/adidas/i,         'adidas,shoes'],
-  [/asics/i,          'asics,running'],
-  [/stone island/i,   'stone-island,streetwear'],
-  [/moncler/i,        'moncler,jacket'],
-  [/supreme/i,        'supreme,streetwear'],
-  [/off.white/i,      'off-white,fashion'],
-  [/balenciaga/i,     'balenciaga,fashion'],
-  [/gucci/i,          'gucci,fashion'],
-  [/louis vuitton/i,  'louis-vuitton,bag'],
-  [/рюкзак/i,         'backpack,bag'],
-  [/куртк|пуховик/i,  'jacket,fashion'],
-  [/пальто/i,         'coat,fashion'],
-  [/платье/i,         'dress,fashion'],
-  [/джинс/i,          'jeans,fashion'],
-  [/сумк/i,           'handbag,fashion'],
-  [/часы|rolex/i,     'watch,luxury'],
-  [/кресл/i,          'chair,office'],
-  [/стол/i,           'desk,furniture'],
-  // Услуги
-  [/ремонт квартир/i, 'renovation,interior'],
-  [/сантехник/i,      'plumber,tools'],
-  [/электрик/i,       'electrician,tools'],
-  [/грузопер|грузчик/i,'truck,moving'],
-  [/мастер на час/i,  'handyman,tools'],
-  [/apple|iphone|mac/i,'apple,repair'],
-  [/репетитор/i,      'study,education'],
-  [/бухгалтер/i,      'accounting,business'],
-  [/дизайн/i,         'interior,design'],
-  [/фотограф/i,       'photographer,camera'],
-  [/видеосъемк/i,     'videography,wedding'],
-  [/юридич/i,         'lawyer,business'],
-  [/перевод/i,        'translation,document'],
-  [/уборк/i,          'cleaning,home'],
-  [/химчистк/i,       'cleaning,sofa'],
-  [/мойк/i,           'car,wash'],
-  [/кондиционер/i,    'air-conditioner,installation'],
-  [/потолк/i,         'ceiling,renovation'],
-  [/ламинат/i,        'flooring,laminate'],
-  [/мебель|перетяжк/i,'furniture,upholstery'],
-  // Аренда
-  [/аренда tesla/i,   'tesla,car'],
-  [/аренда.*bmw|прокат.*bmw/i,'bmw,luxury-car'],
-  [/аренда.*mercedes/i,'mercedes,car'],
-  [/аренда.*range/i,  'range-rover,luxury'],
-  [/аренда.*porsche/i,'porsche,car'],
+// ─── Изображения: source.unsplash.com — семантический поиск по запросу ────────
+// sig=N гарантирует разные фото при одном поисковом запросе
+
+// Маппинг заголовка объявления → поисковый запрос Unsplash
+// Порядок важен: более специфичные правила выше
+const TITLE_QUERY_MAP = [
+  // ── Конкретные авто ────────────────────────────────────────────────────
+  [/BMW R\d|BMW GS/i,            'BMW motorcycle adventure'],
+  [/Yamaha MT/i,                 'Yamaha MT motorcycle'],
+  [/Honda CB/i,                  'Honda CB motorcycle street'],
+  [/Kawasaki Z/i,                'Kawasaki Z motorcycle'],
+  [/мотоцикл|ducati|harley/i,    'motorcycle bike road'],
+  [/Tesla/i,                     'Tesla Model 3 electric car'],
+  [/BMW X5/i,                    'BMW X5 SUV black'],
+  [/BMW 5|BMW M/i,               'BMW 5 Series sedan'],
+  [/BMW/i,                       'BMW car luxury'],
+  [/Mercedes.*GLE|Mercedes.*GLC/i,'Mercedes GLE SUV'],
+  [/Mercedes/i,                  'Mercedes Benz sedan luxury'],
+  [/Audi Q5|Audi Q7/i,           'Audi Q5 SUV'],
+  [/Audi A6/i,                   'Audi A6 sedan'],
+  [/Audi/i,                      'Audi car quattro'],
+  [/Porsche Cayenne/i,           'Porsche Cayenne SUV'],
+  [/Porsche/i,                   'Porsche 911 sports car'],
+  [/Range Rover Sport/i,         'Range Rover Sport luxury SUV'],
+  [/Land Rover/i,                'Land Rover Discovery offroad'],
+  [/Lexus/i,                     'Lexus ES luxury sedan'],
+  [/Volvo XC/i,                  'Volvo XC90 SUV'],
+  [/Toyota RAV4/i,               'Toyota RAV4 SUV crossover'],
+  [/Toyota Camry/i,              'Toyota Camry sedan'],
+  [/Kia Sportage/i,              'Kia Sportage crossover'],
+  [/Hyundai Tucson/i,            'Hyundai Tucson crossover'],
+  [/Volkswagen/i,                'Volkswagen car'],
+  [/Ford Explorer/i,             'Ford Explorer SUV'],
+  [/Chevrolet Tahoe/i,           'Chevrolet Tahoe SUV'],
+  [/Jeep Grand Cherokee/i,       'Jeep Grand Cherokee offroad'],
+  [/Subaru/i,                    'Subaru Outback car'],
+  [/Mitsubishi/i,                'Mitsubishi SUV car'],
+  [/Honda Accord/i,              'Honda Accord sedan'],
+  [/Nissan/i,                    'Nissan sedan car'],
+  [/Mazda/i,                     'Mazda 6 sedan'],
+  [/Skoda/i,                     'Skoda Octavia car'],
+  [/Genesis/i,                   'Genesis G80 luxury sedan'],
+  // ── Недвижимость ───────────────────────────────────────────────────────
+  [/Студия/i,                    'studio apartment modern interior'],
+  [/1-комнатная/i,               'one room apartment interior cozy'],
+  [/2-комнатная/i,               'two bedroom apartment modern interior'],
+  [/3-комнатная/i,               'large apartment spacious interior'],
+  [/4-комнатная/i,               'luxury apartment interior design'],
+  [/Апартамент/i,                'luxury apartment panoramic view'],
+  [/Таунхаус/i,                  'townhouse exterior modern'],
+  [/Коттедж/i,                   'cottage house country exterior'],
+  // ── Смартфоны ──────────────────────────────────────────────────────────
+  [/iPhone 15 Pro/i,             'iPhone 15 Pro Apple smartphone'],
+  [/iPhone/i,                    'iPhone Apple smartphone white'],
+  [/Samsung Galaxy S24/i,        'Samsung Galaxy S24 Ultra smartphone'],
+  [/Samsung Galaxy/i,            'Samsung Galaxy smartphone'],
+  // ── Ноутбуки ───────────────────────────────────────────────────────────
+  [/MacBook Pro/i,               'MacBook Pro Apple laptop desk'],
+  [/MacBook/i,                   'MacBook Apple laptop'],
+  // ── Планшеты ───────────────────────────────────────────────────────────
+  [/iPad Pro/i,                  'iPad Pro Apple tablet desk'],
+  [/iPad/i,                      'iPad Apple tablet'],
+  // ── Гейминг ────────────────────────────────────────────────────────────
+  [/PlayStation 5|PS5/i,         'PlayStation 5 Sony gaming console'],
+  [/Xbox Series X/i,             'Xbox Series X Microsoft gaming'],
+  [/Nintendo Switch/i,           'Nintendo Switch OLED gaming handheld'],
+  // ── Аудио ──────────────────────────────────────────────────────────────
+  [/AirPods Pro/i,               'AirPods Pro Apple wireless earbuds'],
+  [/AirPods/i,                   'AirPods Apple earbuds white'],
+  [/Sony WH-1000/i,              'Sony WH-1000XM5 headphones noise cancelling'],
+  [/наушники|headphones/i,       'headphones wireless audio'],
+  // ── Дрон ───────────────────────────────────────────────────────────────
+  [/DJI Mini/i,                  'DJI Mini drone flying aerial'],
+  [/GoPro/i,                     'GoPro Hero camera action sport'],
+  // ── Умный дом / бытовая ────────────────────────────────────────────────
+  [/Dyson V/i,                   'Dyson V15 cordless vacuum cleaner'],
+  [/Roborock|робот.*пылесос/i,   'robot vacuum cleaner smart home'],
+  [/De.Longhi|кофемашин/i,       'espresso machine coffee DeLonghi'],
+  // ── Телевизор / монитор ────────────────────────────────────────────────
+  [/Samsung.*QLED|телевизор/i,   'Samsung QLED 4K TV living room'],
+  [/LG UltraWide|монитор/i,      'LG ultrawide monitor workspace setup'],
+  [/RTX 4090|видеокарт/i,        'RTX 4090 GPU graphics card'],
+  [/Ryzen 9|процессор/i,         'AMD Ryzen processor computer build'],
+  [/SSD Samsung|NVMe/i,          'Samsung SSD NVMe storage'],
+  // ── Транспорт / активный отдых ─────────────────────────────────────────
+  [/Ninebot|электросамокат/i,    'electric scooter city ride'],
+  [/Trek Marlin|велосипед/i,     'mountain bike Trek trail'],
+  // ── Фото / видео ───────────────────────────────────────────────────────
+  [/Sony A7|фотоаппарат/i,       'Sony A7 mirrorless camera photography'],
+  [/Canon RF.*85|объектив/i,     'Canon RF lens photography portrait'],
+  // ── Музыка ─────────────────────────────────────────────────────────────
+  [/Gibson Les Paul/i,           'Gibson Les Paul electric guitar'],
+  [/Yamaha DX7|синтезатор/i,     'Yamaha synthesizer keyboard music studio'],
+  // ── Мебель / офис ──────────────────────────────────────────────────────
+  [/Herman Miller|Aeron/i,       'Herman Miller Aeron office chair ergonomic'],
+  [/IKEA.*BEKANT|стол.*IKEA/i,   'IKEA desk home office workspace'],
+  [/Arc.teryx|рюкзак.*trek/i,    'Arc\'teryx backpack hiking outdoor'],
+  [/Rolex Submariner/i,          'Rolex Submariner watch luxury close-up'],
+  // ── Кроссовки ──────────────────────────────────────────────────────────
+  [/Air Jordan 1/i,              'Air Jordan 1 Nike sneakers shoes'],
+  [/Yeezy Boost 350/i,           'Adidas Yeezy Boost 350 V2 sneakers'],
+  [/New Balance 990/i,           'New Balance 990 sneakers grey'],
+  [/Asics Gel/i,                 'Asics Gel running shoes'],
+  [/Nike/i,                      'Nike sneakers shoes'],
+  [/Adidas/i,                    'Adidas shoes sneakers'],
+  // ── Уличная мода ───────────────────────────────────────────────────────
+  [/Stone Island/i,              'Stone Island jacket streetwear'],
+  [/Moncler Maya|Moncler/i,      'Moncler down jacket luxury winter'],
+  [/Supreme Box Logo/i,          'Supreme Box Logo hoodie streetwear'],
+  [/Off-White/i,                 'Off-White hoodie fashion streetwear'],
+  [/Balenciaga/i,                'Balenciaga fashion luxury streetwear'],
+  [/Carhartt/i,                  'Carhartt WIP pants streetwear'],
+  [/Palm Angels/i,               'Palm Angels shorts fashion luxury'],
+  [/Max Mara/i,                  'Max Mara coat elegant fashion'],
+  [/Jacquemus|платье/i,          'Jacquemus dress elegant fashion'],
+  [/Zimmermann|блузк/i,          'Zimmermann blouse fashion women'],
+  [/Levi.s 501|джинс/i,          'Levis 501 jeans denim classic'],
+  // ── Аксессуары ─────────────────────────────────────────────────────────
+  [/Louis Vuitton Neverfull/i,   'Louis Vuitton Neverfull bag luxury'],
+  [/Gucci GG/i,                  'Gucci GG Supreme backpack luxury bag'],
+  [/Hermès|ремень/i,             'Hermes belt leather luxury'],
+  [/Acne Studios|шапка/i,        'Acne Studios beanie streetwear'],
+  [/Burberry|шарф/i,             'Burberry scarf plaid luxury'],
+  // ── Услуги ─────────────────────────────────────────────────────────────
+  [/Ремонт квартир|ремонт.*ключ/i,'apartment renovation interior workers'],
+  [/Сантехник/i,                 'plumber bathroom repair tools professional'],
+  [/Электрик/i,                  'electrician work panel installation professional'],
+  [/Грузоперевозки|грузчик/i,    'moving truck logistics workers'],
+  [/Перетяжка мебели/i,          'furniture upholstery sofa restoration'],
+  [/Мастер на час/i,             'handyman tools repair home professional'],
+  [/Ремонт техники Apple/i,      'Apple iPhone MacBook repair service'],
+  [/Репетитор/i,                 'tutor studying education math student'],
+  [/Бухгалтерские/i,             'accountant office business documents'],
+  [/Дизайн интерьера/i,          'interior design modern apartment luxury'],
+  [/Фотограф на мероприятие/i,   'photographer event portrait professional camera'],
+  [/Видеосъёмка свадеб/i,        'wedding videography ceremony couple'],
+  [/Юридические/i,               'lawyer office documents business professional'],
+  [/Переводы документов/i,       'documents translation notary office'],
+  [/Уборка квартир/i,            'house cleaning apartment professional service'],
+  [/Химчистка мебели/i,          'sofa cleaning upholstery professional'],
+  [/Мойка автомобилей/i,         'car wash detail professional'],
+  [/Установка кондиционеров/i,   'air conditioner installation technician'],
+  [/Натяжные потолки/i,          'stretch ceiling installation modern interior'],
+  [/Укладка ламината/i,          'laminate flooring installation workers'],
+  // ── Аренда авто ────────────────────────────────────────────────────────
+  [/Аренда Tesla/i,              'Tesla Model 3 rental electric car'],
+  [/Прокат BMW|Аренда BMW/i,     'BMW car rental luxury'],
+  [/Аренда Mercedes/i,           'Mercedes rental luxury car'],
+  [/Аренда Range Rover/i,        'Range Rover rental luxury SUV'],
+  [/Прокат Porsche|Аренда Porsche/i,'Porsche rental sports car'],
+  [/Аренда Lexus/i,              'Lexus RX rental luxury'],
+  [/Прокат Genesis/i,            'Genesis G80 rental luxury sedan'],
+  [/Аренда Volvo/i,              'Volvo XC60 rental'],
+  [/Прокат Audi/i,               'Audi A4 rental car'],
+  [/Прокат Toyota|Аренда Toyota/i,'Toyota Camry rental'],
+  [/Прокат Kia|Аренда Kia/i,     'Kia Sportage rental crossover'],
+  [/Прокат Hyundai|Аренда Hyundai/i,'Hyundai Tucson rental'],
+  [/Прокат Ford|Аренда Ford/i,   'Ford Explorer rental SUV'],
+  [/Прокат Chevrolet|Аренда Chevrolet/i,'Chevrolet Tahoe rental SUV'],
 ];
 
-const CATEGORY_FALLBACK = {
-  transport:   'car,automobile',
-  realestate:  'apartment,interior',
-  items:       'electronics,gadget',
-  clothing:    'fashion,style',
-  services:    'tools,work',
-  rent:        'car,rental',
+const CATEGORY_QUERY = {
+  transport:  'luxury car sedan road',
+  realestate: 'modern apartment interior design',
+  items:      'electronics gadget technology',
+  clothing:   'fashion style clothing streetwear',
+  services:   'professional work service tools',
+  rent:       'car rental luxury drive',
 };
 
-function titleToKeywords(title, category) {
-  for (const [pattern, kw] of TITLE_KEYWORDS) {
-    if (pattern.test(title)) return kw;
+function titleToQuery(title, category) {
+  for (const [re, q] of TITLE_QUERY_MAP) {
+    if (re.test(title)) return encodeURIComponent(q);
   }
-  return CATEGORY_FALLBACK[category] || 'product';
+  return encodeURIComponent(CATEGORY_QUERY[category] || 'product item sale');
 }
 
-function flickrUrl(title, category, productIdx, imgIdx = 0) {
-  const kw = titleToKeywords(title, category);
-  const lock = productIdx * 10 + imgIdx + 1;
-  return `https://loremflickr.com/600/400/${kw}?lock=${lock}`;
+function getImages(title, category, idx, count = 2) {
+  const q = titleToQuery(title, category);
+  return Array.from({ length: count }, (_, i) =>
+    `https://source.unsplash.com/600x400/?${q}&sig=${idx * 7 + i + 1}`
+  );
 }
 
 function rand(arr) {
@@ -300,7 +354,7 @@ function genTransport(idx) {
       КПП: rand(TRANSPORT.transmissions),
       Привод: rand(TRANSPORT.drives),
     },
-    images: [flickrUrl(title, 'transport', idx, 0), flickrUrl(title, 'transport', idx, 1)],
+    images: getImages(title, 'transport', idx, 2),
   };
 }
 
@@ -324,7 +378,7 @@ function genRealestate(idx) {
       Этаж: `${floor}/${totalFloors}`,
       Ремонт: rand(REALESTATE.renovations),
     },
-    images: [flickrUrl(title, 'realestate', idx, 0), flickrUrl(title, 'realestate', idx, 1)],
+    images: getImages(title, 'realestate', idx, 2),
   };
 }
 
@@ -341,7 +395,7 @@ function genItems(idx) {
       Состояние: isNew ? 'Новое, запечатанное' : `${randInt(7, 10)}/10`,
       Гарантия: isNew ? '1 год' : 'Нет',
     },
-    images: [flickrUrl(title, 'items', idx, 0), flickrUrl(title, 'items', idx, 1), flickrUrl(title, 'items', idx, 2)],
+    images: getImages(title, 'items', idx, 3),
   };
 }
 
@@ -359,7 +413,7 @@ function genClothing(idx) {
       Размер: rand(CLOTHING.sizes),
       Состояние: isNew ? 'Новое с бирками' : 'Б/У',
     },
-    images: [flickrUrl(title, 'clothing', idx, 0), flickrUrl(title, 'clothing', idx, 1)],
+    images: getImages(title, 'clothing', idx, 2),
   };
 }
 
@@ -376,7 +430,7 @@ function genServices(idx) {
       Выезд: Math.random() > 0.5 ? 'Бесплатно' : 'Платный',
       Гарантия: Math.random() > 0.5 ? 'Да' : 'По договорённости',
     },
-    images: [flickrUrl(title, 'services', idx, 0)],
+    images: getImages(title, 'services', idx, 1),
   };
 }
 
@@ -395,7 +449,7 @@ function genRent(idx) {
       Страховка: 'КАСКО включена',
       'Цена/сутки': `${pricePerDay.toLocaleString('ru-RU')} ₽`,
     },
-    images: [flickrUrl(title, 'rent', idx, 0), flickrUrl(title, 'rent', idx, 1)],
+    images: getImages(title, 'rent', idx, 2),
   };
 }
 
