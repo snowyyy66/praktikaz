@@ -81,6 +81,54 @@ export async function initDatabase() {
     )
   `);
 
+  // Migration: add images column if missing
+  try { db.run("ALTER TABLE products ADD COLUMN images TEXT DEFAULT '[]'"); } catch (_) {}
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user1_id INTEGER NOT NULL,
+      user2_id INTEGER NOT NULL,
+      product_id INTEGER,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user1_id, user2_id, product_id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id INTEGER NOT NULL,
+      sender_id INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reviewer_id INTEGER NOT NULL,
+      target_user_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      rating INTEGER NOT NULL,
+      text TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(reviewer_id, product_id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      text TEXT NOT NULL,
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   const count = db.exec("SELECT COUNT(*) as c FROM users");
   if (count[0].values[0][0] === 0) {
     seedDatabase();

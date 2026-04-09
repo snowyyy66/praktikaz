@@ -7,19 +7,26 @@ export default function AuthPage({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    if (!isLogin) {
+      if (formData.password.length < 8) { setError('Пароль должен быть не менее 8 символов'); return; }
+      if (formData.password !== formData.confirmPassword) { setError('Пароли не совпадают'); return; }
+      if (formData.username.trim().length < 2) { setError('Имя пользователя слишком короткое'); return; }
+    }
+
+    setLoading(true);
     try {
       if (isLogin) {
         await api.login({ email: formData.email, password: formData.password });
       } else {
-        await api.register(formData);
+        await api.register({ username: formData.username, email: formData.email, password: formData.password });
       }
-      onLogin(); // App.jsx will now pass us through because we have token
+      onLogin();
     } catch (err) {
       console.error(err);
       setError(isLogin ? 'Неверная почта или пароль' : 'Ошибка регистрации (возможно, такой пользователь уже существует)');
@@ -58,8 +65,14 @@ export default function AuthPage({ onLogin }) {
           </div>
           <div className="input-group">
             <Lock size={18} className="input-icon" />
-            <input type="password" name="password" placeholder="Пароль" required value={formData.password} onChange={handleChange} />
+            <input type="password" name="password" placeholder="Пароль" required value={formData.password} onChange={handleChange} minLength={isLogin ? undefined : 8} />
           </div>
+          {!isLogin && (
+            <div className="input-group">
+              <Lock size={18} className="input-icon" />
+              <input type="password" name="confirmPassword" placeholder="Повторите пароль" required value={formData.confirmPassword} onChange={handleChange} />
+            </div>
+          )}
 
           <button type="submit" className="btn-primary auth-submit" disabled={loading}>
             {loading ? 'Загрузка...' : (isLogin ? 'Войти' : 'Зарегистрироваться')}
