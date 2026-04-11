@@ -28,8 +28,10 @@ const CATEGORY_FIELDS = {
     { name: 'Ремонт', key: 'renovation', options: ['Черновая', 'Чистовая', 'Евро', 'Дизайнерский'] },
   ],
   rent: [
-    { name: 'Залог', key: 'deposit' },
-    { name: 'Минимальный стаж (лет)', key: 'min_experience' },
+    { name: 'Мин. срок (часов)', key: 'min_hours', number: true, min: 1, placeholder: '4' },
+    { name: 'Макс. срок (часов)', key: 'max_hours', number: true, min: 1, placeholder: '72' },
+    { name: 'Залог / условия', key: 'deposit' },
+    { name: 'Мин. стаж вождения', key: 'min_experience' },
   ],
   clothing: [
     { name: 'Бренд', key: 'brand' },
@@ -49,6 +51,9 @@ export default function CreateProductPage() {
     condition: 'Б/У',
     description: ''
   });
+  const [saleMode, setSaleMode] = useState('fixed');
+  const [auctionEnds, setAuctionEnds] = useState('');
+  const [auctionStep, setAuctionStep] = useState('500');
   const [details, setDetails] = useState({});
 
   const handleChange = (e) => {
@@ -57,6 +62,7 @@ export default function CreateProductPage() {
       const conditions = CATEGORY_CONDITIONS[e.target.value];
       updated.condition = conditions ? conditions[0] : 'Б/У';
       setDetails({});
+      if (e.target.value === 'rent') setSaleMode('fixed');
     }
     setFormData(updated);
   };
@@ -80,16 +86,26 @@ export default function CreateProductPage() {
     const price = parseInt(formData.price);
     if (!price || price <= 0) { alert('Укажите корректную цену'); return; }
     if (formData.description.trim().length < 10) { alert('Описание должно быть не менее 10 символов'); return; }
+    if (saleMode === 'auction' && !auctionEnds.trim()) { alert('Укажите дату и время окончания торгов'); return; }
+    if (formData.category_id === 'rent') {
+      const minH = parseInt(details.min_hours, 10);
+      const maxH = parseInt(details.max_hours, 10);
+      if (!Number.isFinite(minH) || minH < 1) { alert('Укажите минимум часов аренды (от 1)'); return; }
+      if (!Number.isFinite(maxH) || maxH < minH) { alert('Максимум часов должен быть не меньше минимума'); return; }
+    }
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, price, seller_id: getUserId(), details }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
+      const payload = {
+        ...formData,
+        price,
+        seller_id: getUserId(),
+        details,
+        sale_type: formData.category_id === 'rent' ? 'fixed' : (saleMode === 'auction' ? 'auction' : 'fixed'),
+        auction_ends_at: formData.category_id === 'rent' ? null : (saleMode === 'auction' ? auctionEnds : null),
+        auction_step: formData.category_id === 'rent' ? undefined : (saleMode === 'auction' ? parseInt(auctionStep, 10) || 500 : undefined),
+      };
+      const data = await api.createProduct(payload);
 
       if (photos.length > 0 && data.id) {
         const fd = new FormData();
@@ -100,7 +116,7 @@ export default function CreateProductPage() {
       navigate('/my-products');
     } catch (err) {
       console.error(err);
-      alert('Ошибка при публикации объявления');
+      alert(err.message || 'Ошибка при публикации объявления');
     } finally {
       setLoading(false);
     }
@@ -137,10 +153,43 @@ export default function CreateProductPage() {
             </div>
           </div>
 
+          {formData.category_id !== 'rent' && (
+          <div className="form-group sale-mode-row">
+            <label>Тип продажи</label>
+            <div className="sale-mode-toggle">
+              <label className={saleMode === 'fixed' ? 'active' : ''}>
+                <input type="radio" name="saleMode" checked={saleMode === 'fixed'} onChange={() => setSaleMode('fixed')} />
+                Фиксированная цена
+              </label>
+              <label className={saleMode === 'auction' ? 'active' : ''}>
+                <input type="radio" name="saleMode" checked={saleMode === 'auction'} onChange={() => setSaleMode('auction')} />
+                Аукцион (торги)
+              </label>
+            </div>
+          </div>
+          )}
+
+          {formData.category_id !== 'rent' && saleMode === 'auction' && (
+            <div className="form-row">
+              <div className="form-group">
+                <label>Окончание торгов</label>
+                <input type="datetime-local" value={auctionEnds} onChange={e => setAuctionEnds(e.target.value)} required={saleMode === 'auction'} />
+              </div>
+              <div className="form-group">
+                <label>Шаг ставки (₽)</label>
+                <input type="number" value={auctionStep} onChange={e => setAuctionStep(e.target.value)} min="1" placeholder="500" />
+              </div>
+            </div>
+          )}
+
           <div className="form-row">
             <div className="form-group">
-              <label>Цена (₽)</label>
-              <input type="number" name="price" value={formData.price} onChange={handleChange} required placeholder="50000" min="1" />
+              <label>
+                {formData.category_id === 'rent'
+                  ? 'Цена за 1 час (₽)'
+                  : (saleMode === 'auction' ? 'Стартовая ставка (₽)' : 'Цена (₽)')}
+              </label>
+              <input type="number" name="price" value={formData.price} onChange={handleChange} required placeholder={formData.category_id === 'rent' ? '1500' : '50000'} min="1" />
             </div>
             <div className="form-group">
               <label>Состояние</label>
@@ -166,6 +215,14 @@ export default function CreateProductPage() {
                         <option value="">— выберите —</option>
                         {field.options.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
+                    ) : field.number ? (
+                      <input
+                        type="number"
+                        min={field.min ?? 1}
+                        value={details[field.key] || ''}
+                        onChange={e => handleDetailChange(field.key, e.target.value)}
+                        placeholder={field.placeholder || ''}
+                      />
                     ) : (
                       <input type="text" value={details[field.key] || ''} onChange={e => handleDetailChange(field.key, e.target.value)} placeholder={field.name} />
                     )}

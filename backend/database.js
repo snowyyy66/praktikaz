@@ -8,6 +8,7 @@ const DB_PATH = path.join(__dirname, 'marketplace.db');
 
 let db;
 
+/** Подключить или создать файл БД, создать таблицы и колонки при отсутствии, при пустой БД — seed, затем сохранить на диск */
 export async function initDatabase() {
   const SQL = await initSqlJs();
 
@@ -80,9 +81,23 @@ export async function initDatabase() {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  try { db.run('ALTER TABLE orders ADD COLUMN rent_hours INTEGER'); } catch (_) {}
 
   // Migration: add images column if missing
   try { db.run("ALTER TABLE products ADD COLUMN images TEXT DEFAULT '[]'"); } catch (_) {}
+  try { db.run("ALTER TABLE products ADD COLUMN sale_type TEXT DEFAULT 'fixed'"); } catch (_) {}
+  try { db.run("ALTER TABLE products ADD COLUMN auction_ends_at TEXT"); } catch (_) {}
+  try { db.run("ALTER TABLE products ADD COLUMN auction_step INTEGER DEFAULT 500"); } catch (_) {}
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS auction_bids (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      bidder_id INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS conversations (
@@ -134,16 +149,37 @@ export async function initDatabase() {
     seedDatabase();
   }
 
+  const ps5Auction = queryOne("SELECT id FROM products WHERE title LIKE '%PS5%' AND sale_type = 'auction' LIMIT 1");
+  if (!ps5Auction) {
+    const ps5 = queryOne("SELECT id FROM products WHERE title LIKE '%PS5%' LIMIT 1");
+    if (ps5) {
+      db.run(`UPDATE products SET sale_type = 'auction', auction_ends_at = datetime('now', '+14 days'), auction_step = 500, price = 30000 WHERE id = ?`, [ps5.id]);
+    }
+  }
+
+  const rentRows = queryAll("SELECT id, details FROM products WHERE category_id = 'rent'");
+  for (const r of rentRows) {
+    let d = {};
+    try { d = JSON.parse(r.details || '{}'); } catch (_) {}
+    if (d.min_hours == null || d.min_hours === '' || d.max_hours == null || d.max_hours === '') {
+      d.min_hours = d.min_hours || '4';
+      d.max_hours = d.max_hours || '168';
+      db.run('UPDATE products SET details = ? WHERE id = ?', [JSON.stringify(d), r.id]);
+    }
+  }
+
   saveDb();
   return db;
 }
 
+/** Сериализовать текущее состояние sql.js в файл marketplace.db */
 function saveDb() {
   const data = db.export();
   const buffer = Buffer.from(data);
   fs.writeFileSync(DB_PATH, buffer);
 }
 
+/** Заполнить демо-пользователей, категории, товары, заказы и избранное при первом запуске */
 function seedDatabase() {
   const users = [
     ['vlad_msk', 'vlad99@bk.ru', '123456', '+7 (916) 453-29-11', 'Москва', 4.8, 12, 540000],
@@ -182,7 +218,7 @@ function seedDatabase() {
     ['Куртка TNF Nuptse', 'Носил 1 месяц зимний пухан', 'clothing', 22000, 'Санкт-Петербург', 'Б/У', 1200, 67, 6, '{"Бренд":"The North Face","Размер":"L","Сезон":"Зима"}'],
     ['Замена проводки', 'Сделаю всё что нужно по электрике, цена после осмотра', 'services', 5000, 'Москва', 'Услуга', 1800, 45, 1, '{"Опыт":"10 лет","Выезд":"Бесплатно"}'],
     ['Переезд с грузчиками', 'Приедем поможем загрузим', 'services', 2000, 'Москва', 'Услуга', 3400, 210, 5, '{"Техника":"Газель 4м","Грузчики":"2 человека"}'],
-    ['Аренда Model Y', 'Сдам в аренду подписываем договор на сутки.', 'rent', 12000, 'Москва', 'Аренда/сутки', 1800, 67, 2, '{"Залог":"10к","Стаж":"от 3 лет"}']
+    ['Аренда Model Y', 'Сдам в аренду, договор, залог. Цена за час — см. карточку.', 'rent', 1800, 'Москва', 'Аренда/сутки', 1800, 67, 2, '{"min_hours":"4","max_hours":"120","Залог":"10 000 ₽","Стаж вождения":"от 3 лет"}']
   ];
   for (const p of products) {
     db.run('INSERT INTO products (title, description, category_id, price, city, condition, views, likes, seller_id, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', p);
@@ -204,6 +240,7 @@ function seedDatabase() {
   }
 }
 
+/** Выполнить SELECT и вернуть массив строк-объектов */
 export function queryAll(sql, params = []) {
   const stmt = db.prepare(sql);
   if (params.length) stmt.bind(params);
@@ -215,14 +252,17 @@ export function queryAll(sql, params = []) {
   return results;
 }
 
+/** Одна строка результата или null */
 export function queryOne(sql, params = []) {
   const results = queryAll(sql, params);
   return results[0] || null;
 }
 
+/** INSERT/UPDATE/DELETE и сразу сохранить БД на диск */
 export function runSql(sql, params = []) {
   db.run(sql, params);
   saveDb();
 }
 
+/** Сырой экземпляр sql.js (для отладки или расширений) */
 export function getDb() { return db; }

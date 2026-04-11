@@ -1,46 +1,76 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './MessagesPage.css';
 
+const POLL_MS = 2500;
+
 export default function MessagesPage() {
   const [conversations, setConversations] = useState([]);
-  const [activeConv, setActiveConv] = useState(null);
+  const [activeConvId, setActiveConvId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
-  const userId = parseInt(getUserId());
+  const userId = parseInt(getUserId(), 10);
+
+  const activeConv = useMemo(
+    () => conversations.find(c => c.id === activeConvId) || null,
+    [conversations, activeConvId]
+  );
 
   useEffect(() => {
+    if (!Number.isFinite(userId)) {
+      setLoading(false);
+      return;
+    }
     api.getConversations(userId)
-      .then(data => { setConversations(data); if (data.length > 0) setActiveConv(data[0]); })
+      .then(data => {
+        setConversations(data);
+        if (data.length > 0) setActiveConvId(prev => prev && data.some(c => c.id === prev) ? prev : data[0].id);
+      })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    if (!activeConv) return;
-    api.getMessages(activeConv.id)
+    if (!activeConvId) return;
+    api.getMessages(activeConvId)
       .then(setMessages)
       .catch(err => console.error(err));
-  }, [activeConv]);
+  }, [activeConvId]);
+
+  useEffect(() => {
+    if (!Number.isFinite(userId) || !activeConvId) return;
+    const tick = () => {
+      api.getMessages(activeConvId).then(setMessages).catch(() => {});
+      api.getConversations(userId).then(data => setConversations(data)).catch(() => {});
+    };
+    const id = setInterval(tick, POLL_MS);
+    return () => clearInterval(id);
+  }, [activeConvId, userId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const setDevUser = (id) => {
+    if (id == null) sessionStorage.removeItem('userIdOverride');
+    else sessionStorage.setItem('userIdOverride', String(id));
+    window.location.reload();
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || !activeConv) return;
+    if (!text.trim() || !activeConvId) return;
     setSending(true);
     try {
-      const msg = await api.sendMessage(activeConv.id, userId, text);
+      const msg = await api.sendMessage(activeConvId, userId, text);
       setMessages(prev => [...prev, msg]);
       setText('');
       setConversations(prev => prev.map(c =>
-        c.id === activeConv.id ? { ...c, last_message: msg.text, last_at: msg.created_at } : c
+        c.id === activeConvId ? { ...c, last_message: msg.text, last_at: msg.created_at } : c
       ));
     } catch (err) {
       console.error(err);
@@ -52,8 +82,31 @@ export default function MessagesPage() {
   const getOtherName = (conv) =>
     conv.user1_id === userId ? conv.user2_name : conv.user1_name;
 
+  if (!Number.isFinite(userId)) {
+    return (
+      <div className="messages-page animate-fade-in">
+        <div className="msg-empty" style={{ padding: 48 }}>
+          Войдите в аккаунт, чтобы открыть сообщения
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="messages-page animate-fade-in">
+      {import.meta.env.DEV && (
+        <div className="dev-user-strip" title="В каждой вкладке можно выбрать своего пользователя — переписка между окнами с разными ID">
+          <span>Локально — кто вы:</span>
+          <button type="button" className="dev-user-btn" onClick={() => setDevUser(null)}>как в логине</button>
+          {[1, 2, 3, 4, 5, 6].map(id => (
+            <button key={id} type="button" className={`dev-user-btn${userId === id ? ' active' : ''}`} onClick={() => setDevUser(id)}>
+              {id}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="messages-main">
       <div className="messages-sidebar">
         <div className="messages-sidebar-header">
           <h2>Сообщения</h2>
@@ -70,8 +123,8 @@ export default function MessagesPage() {
             {conversations.map(conv => (
               <div
                 key={conv.id}
-                className={`conv-item${activeConv?.id === conv.id ? ' active' : ''}`}
-                onClick={() => setActiveConv(conv)}
+                className={`conv-item${activeConvId === conv.id ? ' active' : ''}`}
+                onClick={() => setActiveConvId(conv.id)}
               >
                 <div className="conv-avatar">{getOtherName(conv)?.charAt(0).toUpperCase()}</div>
                 <div className="conv-info">
@@ -122,6 +175,7 @@ export default function MessagesPage() {
             </form>
           </>
         )}
+      </div>
       </div>
     </div>
   );
