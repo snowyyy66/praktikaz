@@ -1,5 +1,5 @@
-import { NavLink, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Gavel, Car, Home, Box, Shirt, Briefcase, KeyRound, Heart, Package, Clock, User, LogOut } from 'lucide-react';
+import { NavLink, Link, useSearchParams } from 'react-router-dom';
+import { LayoutGrid, Gavel, Car, Home, Box, Shirt, Briefcase, KeyRound, Heart, Package, Clock, User, LogOut } from 'lucide-react';
 import './Sidebar.css';
 
 const categories = [
@@ -14,7 +14,7 @@ const categories = [
 export default function Sidebar({ onOpenAuth }) {
   const [searchParams] = useSearchParams();
   const activeCategory = searchParams.get('category') || '';
-  const navigate = useNavigate();
+  const auctionNav = searchParams.get('auction') === '1';
 
   return (
     <aside className="sidebar">
@@ -24,10 +24,18 @@ export default function Sidebar({ onOpenAuth }) {
       </NavLink>
 
       <nav className="nav-menu">
-        <NavLink to="/" className={({ isActive }) => `nav-item ${isActive && !activeCategory ? 'active' : ''}`}>
-          <Gavel size={18} />
+        <NavLink to="/" className={({ isActive }) => `nav-item ${isActive && !activeCategory && !auctionNav ? 'active' : ''}`}>
+          <LayoutGrid size={18} />
           <span>Все объявления</span>
         </NavLink>
+
+        <Link
+          to="/?auction=1"
+          className={`nav-item ${auctionNav && !activeCategory ? 'active' : ''}`}
+        >
+          <Gavel size={18} />
+          <span>Аукционы</span>
+        </Link>
 
         <div className="nav-divider"></div>
 

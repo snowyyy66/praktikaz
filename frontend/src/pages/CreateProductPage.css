@@ -21,6 +21,29 @@
   gap: 20px;
 }
 
+.sale-mode-row .sale-mode-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.sale-mode-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.sale-mode-toggle label.active {
+  border-color: var(--accent);
+  background: rgba(43, 118, 251, 0.12);
+}
+.sale-mode-toggle input { width: auto; accent-color: var(--accent); }
+
 .form-row {
   display: flex;
   gap: 16px;

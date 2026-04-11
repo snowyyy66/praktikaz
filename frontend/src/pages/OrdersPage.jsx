@@ -35,10 +35,13 @@ export default function OrdersPage() {
                 <div className="order-info">
                   <div className="order-title">{order.product_title}</div>
                   <div className="order-meta">
-                    {isSale
-                      ? `Продано → ${order.buyer_name}`
-                      : `Куплено у ${order.seller_name}`
-                    }
+                    {order.product_category_id === 'rent' && order.rent_hours
+                      ? (isSale
+                        ? `Аренда ${order.rent_hours} ч. → ${order.buyer_name}`
+                        : `Аренда ${order.rent_hours} ч. у ${order.seller_name}`)
+                      : (isSale
+                        ? `Продано → ${order.buyer_name}`
+                        : `Куплено у ${order.seller_name}`)}
                   </div>
                   <div className="order-date">
                     {new Date(order.created_at).toLocaleDateString('ru-RU', {

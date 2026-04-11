@@ -133,6 +133,11 @@
   background: rgba(43, 118, 251, 0.85);
 }
 
+.auction-badge {
+  background: rgba(234, 179, 8, 0.95);
+  color: #1a1a1a;
+}
+
 .like-btn-card {
   position: absolute;
   top: 10px;
@@ -150,6 +155,13 @@
 .like-btn-card:hover {
   color: #fff;
   background: var(--danger);
+}
+.like-btn-card.active-like {
+  color: #fff;
+  background: rgba(239, 68, 68, 0.88);
+}
+.like-btn-card.active-like:hover {
+  background: rgba(220, 38, 38, 0.95);
 }
 
 .card-content {

@@ -1,0 +1,8 @@
+node_modules/
+frontend/dist/
+frontend/node_modules/.vite/
+backend/uploads/
+*.db
+.env
+.env.local
+.DS_Store
