@@ -25,6 +25,7 @@ export async function initDatabase() {
       username TEXT UNIQUE NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
+      is_admin INTEGER DEFAULT 0,
       phone TEXT DEFAULT '',
       city TEXT DEFAULT 'Москва',
       avatar TEXT DEFAULT '',
@@ -34,6 +35,7 @@ export async function initDatabase() {
       total_earnings INTEGER DEFAULT 0
     )
   `);
+  try { db.run('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch (_) {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS categories (
@@ -116,9 +118,11 @@ export async function initDatabase() {
       conversation_id INTEGER NOT NULL,
       sender_id INTEGER NOT NULL,
       text TEXT NOT NULL,
+      is_read INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  try { db.run('ALTER TABLE messages ADD COLUMN is_read INTEGER DEFAULT 0'); } catch (_) {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS reviews (
@@ -147,6 +151,16 @@ export async function initDatabase() {
   const count = db.exec("SELECT COUNT(*) as c FROM users");
   if (count[0].values[0][0] === 0) {
     seedDatabase();
+  }
+
+  const admin = queryOne('SELECT id FROM users WHERE email = ?', ['admin45@gmail.com']);
+  if (!admin) {
+    db.run(
+      'INSERT INTO users (username, email, password, is_admin, phone, city, rating, total_sales, total_earnings) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)',
+      ['admin_wiwang', 'admin45@gmail.com', 'admin12345', '+7 (900) 000-00-00', 'Москва', 5.0, 0, 0]
+    );
+  } else {
+    db.run('UPDATE users SET is_admin = 1 WHERE id = ?', [admin.id]);
   }
 
   const ps5Auction = queryOne("SELECT id FROM products WHERE title LIKE '%PS5%' AND sale_type = 'auction' LIMIT 1");

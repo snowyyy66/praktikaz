@@ -10,6 +10,7 @@
 
 import { initDatabase, runSql, queryOne } from './database.js';
 import { faker } from '@faker-js/faker/locale/ru';
+import unzipper from 'unzipper';
 
 // ─── Контент по категориям ────────────────────────────────────────────────────
 
@@ -140,6 +141,72 @@ const CITIES = [
   'Нижний Новгород', 'Красноярск', 'Самара', 'Ростов-на-Дону', 'Уфа',
   'Краснодар', 'Воронеж', 'Омск', 'Пермь', 'Тюмень', 'Сочи',
 ];
+
+const DOCX_PATH = process.env.DOCX_PATH || 'c:/Users/Виктор/Desktop/foto.docx';
+let DOCX_IMAGE_MAP = null;
+
+function normalizeTitle(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/["']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripYear(title) {
+  return String(title || '')
+    .replace(/\b(19|20)\d{2}\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function loadDocxImageMap() {
+  if (DOCX_IMAGE_MAP) return DOCX_IMAGE_MAP;
+  try {
+    const dir = await unzipper.Open.file(DOCX_PATH);
+    const entry = dir.files.find(f => f.path === 'word/document.xml');
+    if (!entry) throw new Error('word/document.xml not found');
+    const xml = (await entry.buffer()).toString('utf8');
+    const rows = [];
+    const paragraphRegex = /<w:p[\s\S]*?<\/w:p>/g;
+    const textRegex = /<w:t[^>]*>([\s\S]*?)<\/w:t>/g;
+    for (const p of xml.match(paragraphRegex) || []) {
+      const textParts = [];
+      let m;
+      while ((m = textRegex.exec(p)) !== null) {
+        textParts.push(m[1]);
+      }
+      const line = textParts.join('').trim();
+      if (!line) continue;
+      const urlMatch = line.match(/https?:\/\/\S+/);
+      if (!urlMatch) continue;
+      const url = urlMatch[0].replace(/[).,;\]]+$/, '');
+      const title = line.slice(0, line.indexOf(urlMatch[0])).trim().replace(/^[\s\-–—|]+|[\s\-–—|]+$/g, '');
+      if (title) rows.push({ title, url });
+    }
+    const parsed = rows;
+    DOCX_IMAGE_MAP = new Map(parsed.map(r => [normalizeTitle(r.title), r.url]));
+    console.log(`🖼️  Фото из DOCX загружены: ${DOCX_IMAGE_MAP.size}`);
+  } catch (err) {
+    DOCX_IMAGE_MAP = new Map();
+    console.warn('⚠️  Не удалось загрузить foto.docx, использую fallback-картинки');
+  }
+  return DOCX_IMAGE_MAP;
+}
+
+function getDocxImageForTitle(title) {
+  const map = DOCX_IMAGE_MAP || new Map();
+  const exact = map.get(normalizeTitle(title));
+  if (exact) return exact;
+  const noYear = map.get(normalizeTitle(stripYear(title)));
+  if (noYear) return noYear;
+  const target = normalizeTitle(stripYear(title));
+  for (const [k, v] of map.entries()) {
+    if (!k) continue;
+    if (k.includes(target) || target.includes(k)) return v;
+  }
+  return null;
+}
 
 // ─── Изображения: source.unsplash.com — семантический поиск по запросу ────────
 // sig=N гарантирует разные фото при одном поисковом запросе
@@ -319,6 +386,8 @@ function titleToQuery(title, category) {
 }
 
 function getImages(title, category, idx, count = 2) {
+  const docxImage = getDocxImageForTitle(title);
+  if (docxImage) return [docxImage];
   const q = titleToQuery(title, category);
   return Array.from({ length: count }, (_, i) =>
     `https://source.unsplash.com/600x400/?${q}&sig=${idx * 7 + i + 1}`
@@ -464,11 +533,25 @@ const DIST = [
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  await loadDocxImageMap();
+
   console.log('🚀 Запуск seed400.js...\n');
 
   // 1. Инициализация БД
   await initDatabase();
   console.log('✅ БД инициализирована');
+
+  // 1.1 Полная пересборка объявлений (чтобы в базе были все 400)
+  console.log('🧹 Очистка старых объявлений и связанных данных...');
+  runSql('DELETE FROM auction_bids');
+  runSql('DELETE FROM favorites');
+  runSql('DELETE FROM reviews');
+  runSql('DELETE FROM messages');
+  runSql('DELETE FROM conversations');
+  runSql('DELETE FROM notifications');
+  runSql('DELETE FROM orders');
+  runSql('DELETE FROM products');
+  console.log('✅ Старые объявления удалены');
 
   // 2. Загрузка реальных пользователей с randomuser.me
   console.log('⏳ Загрузка пользователей с randomuser.me...');

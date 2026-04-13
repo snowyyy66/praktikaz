@@ -22,6 +22,17 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 
+function toInt(value) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function isAdminUser(userId) {
+  if (!Number.isFinite(userId)) return false;
+  const row = queryOne('SELECT is_admin FROM users WHERE id = ?', [userId]);
+  return !!row?.is_admin;
+}
+
 /** Строка даты/времени из БД → миллисекунды (для сравнения с «сейчас») */
 function sqlDateToMs(auctionEndsAt) {
   if (!auctionEndsAt) return 0;
@@ -68,7 +79,10 @@ app.get('/api/categories', (req, res) => {
 
 /** GET /api/products — активные объявления (фильтры, сортировка, до 20 шт.; опционально is_favorite для user_id) */
 app.get('/api/products', (req, res) => {
-  const { category, sort, search, auction, user_id } = req.query;
+  const { category, sort, search, auction, city, user_id, page, limit } = req.query;
+  const pageNum = Math.max(1, toInt(page) || 1);
+  const limitNum = Math.min(100, Math.max(1, toInt(limit) || 24));
+  const offsetNum = (pageNum - 1) * limitNum;
   const favUid = user_id != null && String(user_id).trim() !== '' ? parseInt(user_id, 10) : NaN;
   const favSql = Number.isFinite(favUid)
     ? '(SELECT EXISTS(SELECT 1 FROM favorites f WHERE f.product_id = p.id AND f.user_id = ?))'
@@ -96,6 +110,10 @@ app.get('/api/products', (req, res) => {
     sql += ' AND p.title LIKE ?';
     params.push(`%${search}%`);
   }
+  if (city && String(city).trim()) {
+    sql += ' AND LOWER(p.city) LIKE LOWER(?)';
+    params.push(`%${String(city).trim()}%`);
+  }
 
   switch (sort) {
     case 'price_asc': sql += ' ORDER BY p.price ASC'; break;
@@ -104,7 +122,8 @@ app.get('/api/products', (req, res) => {
     default: sql += ' ORDER BY p.created_at DESC'; break;
   }
 
-  sql += ' LIMIT 20';
+  sql += ' LIMIT ? OFFSET ?';
+  params.push(limitNum, offsetNum);
 
   const products = queryAll(sql, params).map(p => ({
     ...p,
@@ -112,7 +131,12 @@ app.get('/api/products', (req, res) => {
     images: JSON.parse(p.images || '[]'),
     is_favorite: !!p.is_favorite,
   }));
-  res.json(products);
+  res.json({
+    items: products,
+    page: pageNum,
+    limit: limitNum,
+    has_more: products.length === limitNum,
+  });
 });
 
 /** GET /api/products/:id — карточка товара (+1 просмотр, данные аукциона, избранное по ?user_id=) */
@@ -156,9 +180,23 @@ app.get('/api/products/:id', (req, res) => {
 /** POST /api/products — создать объявление (фикс или аукцион с датой окончания и шагом) */
 app.post('/api/products', (req, res) => {
   const { title, description, category_id, price, city, condition, seller_id, details, sale_type, auction_ends_at, auction_step } = req.body;
+  const sellerId = toInt(seller_id);
+  const priceInt = toInt(price);
+  if (!title?.trim() || !category_id || !city?.trim() || !condition?.trim()) {
+    return res.status(400).json({ error: 'Заполните обязательные поля объявления' });
+  }
+  if (!Number.isFinite(sellerId)) {
+    return res.status(400).json({ error: 'Некорректный seller_id' });
+  }
+  if (!Number.isFinite(priceInt) || priceInt < 1) {
+    return res.status(400).json({ error: 'Некорректная цена' });
+  }
+  const seller = queryOne('SELECT id FROM users WHERE id = ?', [sellerId]);
+  if (!seller) return res.status(404).json({ error: 'Продавец не найден' });
+
   const st = sale_type === 'auction' ? 'auction' : 'fixed';
   const ends = st === 'auction' && auction_ends_at ? String(auction_ends_at).trim().slice(0, 19).replace('T', ' ') : null;
-  const step = st === 'auction' ? Math.max(1, parseInt(auction_step, 10) || 500) : 500;
+  const step = st === 'auction' ? Math.max(1, toInt(auction_step) || 500) : 500;
 
   if (st === 'auction') {
     if (!ends) return res.status(400).json({ error: 'Укажите дату окончания торгов' });
@@ -168,9 +206,9 @@ app.post('/api/products', (req, res) => {
   runSql(`
     INSERT INTO products (title, description, category_id, price, city, condition, seller_id, details, sale_type, auction_ends_at, auction_step)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [title, description, category_id, price, city, condition, seller_id, JSON.stringify(details || {}), st, ends, step]);
+  `, [title.trim(), String(description || '').trim(), category_id, priceInt, city.trim(), condition.trim(), sellerId, JSON.stringify(details || {}), st, ends, step]);
 
-  const created = queryOne('SELECT id FROM products WHERE seller_id = ? ORDER BY id DESC LIMIT 1', [seller_id]);
+  const created = queryOne('SELECT id FROM products WHERE seller_id = ? ORDER BY id DESC LIMIT 1', [sellerId]);
   res.json({ success: true, id: created?.id });
 });
 
@@ -224,14 +262,54 @@ app.post('/api/products/:id/bids', (req, res) => {
 
 /** POST /api/products/:id/images — добавить фото к объявлению (multipart) */
 app.post('/api/products/:id/images', upload.array('images', 10), (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = toInt(req.params.id);
+  const sellerId = toInt(req.body.seller_id);
+  const actorId = toInt(req.body.actor_id ?? sellerId);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Некорректный id объявления' });
+  if (!Number.isFinite(sellerId)) return res.status(400).json({ error: 'Укажите seller_id' });
+  if (!req.files?.length) return res.status(400).json({ error: 'Файлы не загружены' });
+
   const product = queryOne('SELECT images FROM products WHERE id = ?', [id]);
   if (!product) return res.status(404).json({ error: 'Not found' });
+  const own = queryOne('SELECT id FROM products WHERE id = ? AND seller_id = ?', [id, sellerId]);
+  const adminAllowed = isAdminUser(actorId);
+  if (!own && !adminAllowed) return res.status(403).json({ error: 'Нельзя добавлять фото в чужое объявление' });
 
   const existing = JSON.parse(product.images || '[]');
   const newUrls = req.files.map(f => `/uploads/${f.filename}`);
   const updated = [...existing, ...newUrls];
   runSql('UPDATE products SET images = ? WHERE id = ?', [JSON.stringify(updated), id]);
+  res.json({ success: true, images: updated });
+});
+
+/** DELETE /api/products/:id/images — удалить конкретное фото из объявления */
+app.delete('/api/products/:id/images', (req, res) => {
+  const id = toInt(req.params.id);
+  const sellerId = toInt(req.body?.seller_id);
+  const actorId = toInt(req.body?.actor_id ?? sellerId);
+  const imageUrl = String(req.body?.image_url || '').trim();
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Некорректный id объявления' });
+  if (!Number.isFinite(sellerId)) return res.status(400).json({ error: 'Укажите seller_id' });
+  if (!imageUrl) return res.status(400).json({ error: 'Укажите image_url' });
+
+  const own = queryOne('SELECT id, images FROM products WHERE id = ? AND seller_id = ?', [id, sellerId]);
+  const adminAllowed = isAdminUser(actorId);
+  const product = own || (adminAllowed ? queryOne('SELECT id, images FROM products WHERE id = ?', [id]) : null);
+  if (!product) return res.status(403).json({ error: 'Нельзя удалять фото из чужого объявления' });
+
+  const images = JSON.parse(product.images || '[]');
+  const updated = images.filter((img) => img !== imageUrl);
+  if (updated.length === images.length) return res.status(404).json({ error: 'Фото не найдено в объявлении' });
+  runSql('UPDATE products SET images = ? WHERE id = ?', [JSON.stringify(updated), id]);
+
+  if (imageUrl.startsWith('/uploads/')) {
+    const localName = imageUrl.replace('/uploads/', '');
+    const filePath = path.join(uploadsDir, localName);
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (_) {}
+    }
+  }
+
   res.json({ success: true, images: updated });
 });
 
@@ -245,23 +323,86 @@ app.post('/api/products/:id/like', (req, res) => {
 
 /** PATCH /api/products/:id — обновить поля объявления */
 app.patch('/api/products/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { title, description, category_id, price, city, condition, details } = req.body;
+  const id = toInt(req.params.id);
+  const { title, description, category_id, price, city, condition, details, seller_id, actor_id } = req.body;
+  const sellerId = toInt(seller_id);
+  const actorId = toInt(actor_id ?? seller_id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Некорректный id объявления' });
+  if (!Number.isFinite(sellerId)) return res.status(400).json({ error: 'Укажите seller_id' });
+
+  const own = queryOne('SELECT id FROM products WHERE id = ? AND seller_id = ?', [id, sellerId]);
+  const adminAllowed = isAdminUser(actorId);
+  if (!own && !adminAllowed) return res.status(403).json({ error: 'Нельзя редактировать чужое объявление' });
+
   try {
-    runSql(`
-      UPDATE products SET title = ?, description = ?, category_id = ?, price = ?, city = ?, condition = ?, details = ? WHERE id = ?
-    `, [title, description, category_id, price, city, condition, JSON.stringify(details || {}), id]);
+    const updates = [];
+    const params = [];
+
+    if (title != null) { updates.push('title = ?'); params.push(String(title).trim()); }
+    if (description != null) { updates.push('description = ?'); params.push(String(description).trim()); }
+    if (category_id != null) { updates.push('category_id = ?'); params.push(category_id); }
+    if (price != null) {
+      const priceInt = toInt(price);
+      if (!Number.isFinite(priceInt) || priceInt < 1) return res.status(400).json({ error: 'Некорректная цена' });
+      updates.push('price = ?');
+      params.push(priceInt);
+    }
+    if (city != null) { updates.push('city = ?'); params.push(String(city).trim()); }
+    if (condition != null) { updates.push('condition = ?'); params.push(String(condition).trim()); }
+    if (details !== undefined) { updates.push('details = ?'); params.push(JSON.stringify(details || {})); }
+
+    if (!updates.length) return res.status(400).json({ error: 'Нет данных для обновления' });
+    params.push(id);
+    runSql(`UPDATE products SET ${updates.join(', ')} WHERE id = ?`, params);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-/** DELETE /api/products/:id — снять объявление с публикации (is_active = 0) */
+/** DELETE /api/products/:id — полностью удалить объявление и связанные данные */
 app.delete('/api/products/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  runSql('UPDATE products SET is_active = 0 WHERE id = ?', [id]);
-  res.json({ success: true });
+  const id = toInt(req.params.id);
+  const sellerId = toInt(req.body?.seller_id ?? req.query?.seller_id);
+  const actorId = toInt(req.body?.actor_id ?? req.query?.actor_id ?? sellerId);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Некорректный id объявления' });
+  if (!Number.isFinite(sellerId)) return res.status(400).json({ error: 'Укажите seller_id' });
+  const own = queryOne('SELECT id, seller_id, title, images FROM products WHERE id = ? AND seller_id = ?', [id, sellerId]);
+  const adminAllowed = isAdminUser(actorId);
+  const product = own || (adminAllowed ? queryOne('SELECT id, seller_id, title, images FROM products WHERE id = ?', [id]) : null);
+  if (!product) return res.status(403).json({ error: 'Нельзя удалить чужое объявление' });
+
+  // 1) Удаляем локальные файлы фотографий объявления (если есть)
+  const images = JSON.parse(product.images || '[]');
+  for (const img of images) {
+    if (typeof img !== 'string' || !img.startsWith('/uploads/')) continue;
+    const filePath = path.join(uploadsDir, img.replace('/uploads/', ''));
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (_) {}
+    }
+  }
+
+  // 2) Удаляем все сущности, связанные с объявлением
+  const convRows = queryAll('SELECT id FROM conversations WHERE product_id = ?', [id]);
+  for (const c of convRows) {
+    runSql('DELETE FROM messages WHERE conversation_id = ?', [c.id]);
+  }
+  runSql('DELETE FROM conversations WHERE product_id = ?', [id]);
+  runSql('DELETE FROM favorites WHERE product_id = ?', [id]);
+  runSql('DELETE FROM auction_bids WHERE product_id = ?', [id]);
+  runSql('DELETE FROM reviews WHERE product_id = ?', [id]);
+  runSql('DELETE FROM orders WHERE product_id = ?', [id]);
+
+  // Чистим типовые уведомления по этому товару у владельца (аукцион/продажа/отзывы)
+  runSql(
+    `DELETE FROM notifications
+     WHERE user_id = ? AND (type IN ('auction', 'sale', 'review')) AND text LIKE ?`,
+    [product.seller_id, `%${product.title}%`]
+  );
+
+  // 3) Удаляем само объявление
+  runSql('DELETE FROM products WHERE id = ?', [id]);
+  res.json({ success: true, hard_deleted: true });
 });
 
 /** POST /api/auth/register — регистрация (хеш пароля, проверка уникальности почты/имени) */
@@ -272,9 +413,9 @@ app.post('/api/auth/register', async (req, res) => {
     if (check) return res.status(400).json({ error: 'Пользователь с такой почтой или именем уже существует' });
 
     const hash = await bcrypt.hash(password, 10);
-    runSql('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, hash]);
-    const user = queryOne('SELECT id FROM users WHERE email = ?', [email]);
-    res.json({ success: true, user_id: user.id });
+    runSql('INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 0)', [username, email, hash]);
+    const user = queryOne('SELECT id, is_admin FROM users WHERE email = ?', [email]);
+    res.json({ success: true, user_id: user.id, is_admin: !!user.is_admin });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -283,7 +424,7 @@ app.post('/api/auth/register', async (req, res) => {
 /** POST /api/auth/login — вход по почте и паролю, возвращает user_id */
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  const user = queryOne('SELECT id, password FROM users WHERE email = ?', [email]);
+  const user = queryOne('SELECT id, password, is_admin FROM users WHERE email = ?', [email]);
   if (!user) return res.status(401).json({ error: 'Неверная почта или пароль' });
 
   const isValid = user.password.startsWith('$2')
@@ -291,14 +432,29 @@ app.post('/api/auth/login', async (req, res) => {
     : user.password === password; // fallback for existing seed users
 
   if (!isValid) return res.status(401).json({ error: 'Неверная почта или пароль' });
-  res.json({ success: true, user_id: user.id });
+  res.json({ success: true, user_id: user.id, is_admin: !!user.is_admin });
 });
 
 /** GET /api/users/:id — публичный профиль пользователя */
 app.get('/api/users/:id', (req, res) => {
-  const user = queryOne('SELECT id, username, email, phone, city, avatar, created_at, rating, total_sales, total_earnings FROM users WHERE id = ?', [parseInt(req.params.id)]);
+  const user = queryOne('SELECT id, username, email, is_admin, phone, city, avatar, created_at, rating, total_sales, total_earnings FROM users WHERE id = ?', [parseInt(req.params.id)]);
   if (!user) return res.status(404).json({ error: 'Not found' });
   res.json(user);
+});
+
+/** GET /api/admin/products?user_id= — все объявления для админки */
+app.get('/api/admin/products', (req, res) => {
+  const uid = toInt(req.query.user_id);
+  if (!isAdminUser(uid)) return res.status(403).json({ error: 'Доступ только для администратора' });
+  const products = queryAll(`
+    SELECT p.*, c.name as category_name, u.username as seller_name
+    FROM products p
+    JOIN categories c ON p.category_id = c.id
+    JOIN users u ON p.seller_id = u.id
+    ORDER BY p.created_at DESC
+    LIMIT 500
+  `);
+  res.json(products.map(p => ({ ...p, details: JSON.parse(p.details || '{}'), images: JSON.parse(p.images || '[]') })));
 });
 
 /** POST /api/users/:id/avatar — загрузить аватар, сохранить URL в профиле */
@@ -311,10 +467,12 @@ app.post('/api/users/:id/avatar', upload.single('avatar'), (req, res) => {
 
 /** PUT /api/users/:id — обновить имя, телефон, город */
 app.put('/api/users/:id', (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = toInt(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Некорректный id пользователя' });
   const { username, phone, city } = req.body;
+  if (!username?.trim()) return res.status(400).json({ error: 'Имя не может быть пустым' });
   try {
-    runSql('UPDATE users SET username = ?, phone = ?, city = ? WHERE id = ?', [username, phone, city, id]);
+    runSql('UPDATE users SET username = ?, phone = ?, city = ? WHERE id = ?', [username.trim(), String(phone || '').trim(), String(city || '').trim(), id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -326,9 +484,13 @@ app.get('/api/users/:id/products', (req, res) => {
   const products = queryAll(`
     SELECT p.*, c.name as category_name FROM products p
     JOIN categories c ON p.category_id = c.id
-    WHERE p.seller_id = ? AND p.is_active = 1 ORDER BY p.created_at DESC LIMIT 20
+    WHERE p.seller_id = ? AND p.is_active = 1 ORDER BY p.created_at DESC
   `, [parseInt(req.params.id)]);
-  res.json(products.map(p => ({ ...p, details: JSON.parse(p.details || '{}') })));
+  res.json(products.map(p => ({
+    ...p,
+    details: JSON.parse(p.details || '{}'),
+    images: JSON.parse(p.images || '[]'),
+  })));
 });
 
 /** GET /api/users/:id/stats — сводка: объявления, просмотры, лайки, продажи, покупки */
@@ -402,9 +564,14 @@ app.get('/api/search', (req, res) => {
 /** POST /api/orders — оформить заказ (аренда: rent_hours и сумма за часы; аукцион: только победитель после окончания) */
 app.post('/api/orders', (req, res) => {
   const { buyer_id, product_id, rent_hours } = req.body;
-  const product = queryOne('SELECT * FROM products WHERE id = ? AND is_active = 1', [product_id]);
+  const buyerId = toInt(buyer_id);
+  const productId = toInt(product_id);
+  if (!Number.isFinite(buyerId) || !Number.isFinite(productId)) {
+    return res.status(400).json({ error: 'Некорректные buyer_id или product_id' });
+  }
+  const product = queryOne('SELECT * FROM products WHERE id = ? AND is_active = 1', [productId]);
   if (!product) return res.status(404).json({ error: 'Товар не найден' });
-  if (product.seller_id === buyer_id) return res.status(400).json({ error: 'Нельзя купить собственный товар' });
+  if (toInt(product.seller_id) === buyerId) return res.status(400).json({ error: 'Нельзя купить собственный товар' });
 
   let total = product.price;
   let rentHoursSaved = null;
@@ -430,10 +597,10 @@ app.post('/api/orders', (req, res) => {
     if (isAuctionLive(product)) {
       return res.status(400).json({ error: 'Дождитесь окончания торгов. Победитель оформит покупку по своей ставке.' });
     }
-    const high = getAuctionHigh(product_id);
+    const high = getAuctionHigh(productId);
     if (!high) return res.status(400).json({ error: 'Не было ставок — лот нельзя оформить как покупку' });
-    const leader = getAuctionLeader(product_id, high);
-    if (!leader || leader.bidder_id !== buyer_id) {
+    const leader = getAuctionLeader(productId, high);
+    if (!leader || toInt(leader.bidder_id) !== buyerId) {
       return res.status(403).json({ error: 'Оформить по итогам аукциона может только победитель' });
     }
     total = high;
@@ -441,9 +608,9 @@ app.post('/api/orders', (req, res) => {
 
   try {
     runSql(`INSERT INTO orders (buyer_id, seller_id, product_id, total, status, rent_hours) VALUES (?, ?, ?, ?, 'completed', ?)`,
-      [buyer_id, product.seller_id, product_id, total, rentHoursSaved]);
+      [buyerId, product.seller_id, productId, total, rentHoursSaved]);
     if (product.category_id !== 'rent') {
-      runSql('UPDATE products SET is_active = 0 WHERE id = ?', [product_id]);
+      runSql('UPDATE products SET is_active = 0 WHERE id = ?', [productId]);
     }
     runSql('UPDATE users SET total_sales = total_sales + 1, total_earnings = total_earnings + ? WHERE id = ?',
       [total, product.seller_id]);
@@ -513,51 +680,97 @@ app.post('/api/reviews', (req, res) => {
 /** GET /api/conversations — список диалогов пользователя (?user_id=) с последним сообщением */
 app.get('/api/conversations', (req, res) => {
   const userId = parseInt(req.query.user_id);
-  const convs = queryAll(`
+  const adminMode = isAdminUser(userId);
+  const baseSql = `
     SELECT c.*,
       u1.username as user1_name, u2.username as user2_name,
+      u1.is_admin as user1_is_admin, u2.is_admin as user2_is_admin,
       p.title as product_title,
       (SELECT text FROM messages WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) as last_message,
-      (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) as last_at
+      (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) as last_at,
+      (SELECT COUNT(*) FROM messages m2 WHERE m2.conversation_id = c.id AND COALESCE(m2.is_read, 0) = 0 AND m2.sender_id != ?) as unread_count
     FROM conversations c
     JOIN users u1 ON c.user1_id = u1.id
     JOIN users u2 ON c.user2_id = u2.id
     LEFT JOIN products p ON c.product_id = p.id
-    WHERE c.user1_id = ? OR c.user2_id = ?
-    ORDER BY last_at DESC
-  `, [userId, userId]);
+  `;
+  const sql = adminMode
+    ? `${baseSql} ORDER BY last_at DESC`
+    : `${baseSql} WHERE c.user1_id = ? OR c.user2_id = ? ORDER BY last_at DESC`;
+  const convs = adminMode ? queryAll(sql, [userId]) : queryAll(sql, [userId, userId, userId]);
   res.json(convs);
 });
 
 /** POST /api/conversations — найти существующий или создать чат между двумя пользователями */
 app.post('/api/conversations', (req, res) => {
-  const { user1_id, user2_id, product_id } = req.body;
-  const [a, b] = [Math.min(user1_id, user2_id), Math.max(user1_id, user2_id)];
-  let conv = queryOne('SELECT id FROM conversations WHERE user1_id = ? AND user2_id = ? AND product_id IS ?', [a, b, product_id || null]);
+  const user1 = toInt(req.body.user1_id);
+  const user2 = toInt(req.body.user2_id);
+  const productId = req.body.product_id == null ? null : toInt(req.body.product_id);
+  if (!Number.isFinite(user1) || !Number.isFinite(user2) || user1 === user2) {
+    return res.status(400).json({ error: 'Некорректные участники диалога' });
+  }
+  if (req.body.product_id != null && !Number.isFinite(productId)) {
+    return res.status(400).json({ error: 'Некорректный product_id' });
+  }
+  const [a, b] = [Math.min(user1, user2), Math.max(user1, user2)];
+  let conv = queryOne(`
+    SELECT id FROM conversations
+    WHERE user1_id = ? AND user2_id = ?
+      AND ((product_id IS NULL AND ? IS NULL) OR product_id = ?)
+    LIMIT 1
+  `, [a, b, productId, productId]);
   if (!conv) {
-    runSql('INSERT INTO conversations (user1_id, user2_id, product_id) VALUES (?, ?, ?)', [a, b, product_id || null]);
-    conv = queryOne('SELECT id FROM conversations WHERE user1_id = ? AND user2_id = ? ORDER BY id DESC LIMIT 1', [a, b]);
+    runSql('INSERT INTO conversations (user1_id, user2_id, product_id) VALUES (?, ?, ?)', [a, b, productId]);
+    conv = queryOne(`
+      SELECT id FROM conversations
+      WHERE user1_id = ? AND user2_id = ?
+        AND ((product_id IS NULL AND ? IS NULL) OR product_id = ?)
+      ORDER BY id DESC LIMIT 1
+    `, [a, b, productId, productId]);
   }
   res.json({ id: conv.id });
 });
 
 /** GET /api/conversations/:id/messages — все сообщения диалога по порядку */
 app.get('/api/conversations/:id/messages', (req, res) => {
+  const userId = toInt(req.query.user_id);
+  const convId = parseInt(req.params.id, 10);
+  const conv = queryOne('SELECT user1_id, user2_id FROM conversations WHERE id = ?', [convId]);
+  if (!conv) return res.status(404).json({ error: 'Диалог не найден' });
+  if (!isAdminUser(userId) && userId !== conv.user1_id && userId !== conv.user2_id) {
+    return res.status(403).json({ error: 'Нет доступа к этому диалогу' });
+  }
+  // Для обычного пользователя считаем входящие прочитанными при открытии диалога.
+  if (!isAdminUser(userId)) {
+    runSql('UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_id != ?', [convId, userId]);
+  }
   const msgs = queryAll(`
-    SELECT m.*, u.username as sender_name
+    SELECT m.*, u.username as sender_name, u.is_admin as sender_is_admin
     FROM messages m JOIN users u ON m.sender_id = u.id
     WHERE m.conversation_id = ? ORDER BY m.created_at ASC
-  `, [parseInt(req.params.id)]);
+  `, [convId]);
   res.json(msgs);
 });
 
 /** POST /api/conversations/:id/messages — отправить сообщение в диалог */
 app.post('/api/conversations/:id/messages', (req, res) => {
   const { sender_id, text } = req.body;
+  const convId = parseInt(req.params.id, 10);
+  const senderId = toInt(sender_id);
   if (!text?.trim()) return res.status(400).json({ error: 'Пустое сообщение' });
-  runSql('INSERT INTO messages (conversation_id, sender_id, text) VALUES (?, ?, ?)',
-    [parseInt(req.params.id), sender_id, text.trim()]);
-  const msg = queryOne('SELECT m.*, u.username as sender_name FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.conversation_id = ? ORDER BY m.id DESC LIMIT 1', [parseInt(req.params.id)]);
+  if (!Number.isFinite(senderId)) return res.status(400).json({ error: 'Некорректный sender_id' });
+  const conv = queryOne('SELECT user1_id, user2_id FROM conversations WHERE id = ?', [convId]);
+  if (!conv) return res.status(404).json({ error: 'Диалог не найден' });
+  if (!isAdminUser(senderId) && senderId !== conv.user1_id && senderId !== conv.user2_id) {
+    return res.status(403).json({ error: 'Нет доступа к этому диалогу' });
+  }
+
+  runSql('INSERT INTO messages (conversation_id, sender_id, text, is_read) VALUES (?, ?, ?, 0)',
+    [convId, senderId, text.trim()]);
+  const msg = queryOne(
+    'SELECT m.*, u.username as sender_name, u.is_admin as sender_is_admin FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.conversation_id = ? ORDER BY m.id DESC LIMIT 1',
+    [convId]
+  );
   res.json(msg);
 });
 
