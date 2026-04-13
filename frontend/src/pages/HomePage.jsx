@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { Eye, Heart, Gavel } from 'lucide-react';
 import { api, getUserId } from '../api';
@@ -14,26 +14,59 @@ const SORT_OPTIONS = [
 export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [sort, setSort] = useState('newest');
+  const [cityInput, setCityInput] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const loadMoreRef = useRef(null);
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || '';
   const search = searchParams.get('search') || '';
   const auctionOnly = searchParams.get('auction') === '1';
 
-  useEffect(() => {
-    setLoading(true);
-    const params = { sort };
+  const fetchProducts = useCallback(async (targetPage, append) => {
+    const params = { sort, page: targetPage, limit: 24 };
     if (category) params.category = category;
     if (search) params.search = search;
     if (auctionOnly) params.auction = '1';
+    if (cityFilter.trim()) params.city = cityFilter.trim();
     const uid = getUserId();
     if (uid) params.user_id = uid;
+    const data = await api.getProducts(params);
+    const items = data?.items || [];
+    setProducts(prev => (append ? [...prev, ...items] : items));
+    setHasMore(!!data?.has_more);
+    setPage(targetPage);
+  }, [category, sort, search, auctionOnly, cityFilter]);
 
-    api.getProducts(params)
-      .then(data => setProducts(data))
+  useEffect(() => {
+    setLoading(true);
+    setHasMore(true);
+    setPage(1);
+    fetchProducts(1, false)
       .catch(err => console.error('Failed to load products:', err))
       .finally(() => setLoading(false));
-  }, [category, sort, search, auctionOnly]);
+  }, [fetchProducts]);
+
+  useEffect(() => {
+    if (loading || loadingMore || !hasMore || !loadMoreRef.current) return;
+    const el = loadMoreRef.current;
+    const io = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting) return;
+      setLoadingMore(true);
+      fetchProducts(page + 1, true)
+        .catch(err => console.error('Failed to load more products:', err))
+        .finally(() => setLoadingMore(false));
+    }, { rootMargin: '180px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loading, loadingMore, hasMore, page, fetchProducts]);
+
+  const applyCityFilter = () => {
+    setCityFilter(cityInput.trim());
+  };
 
   const handleFavorite = async (e, productId) => {
     e.preventDefault();
@@ -76,6 +109,22 @@ export default function HomePage() {
             </button>
           ))}
         </div>
+        <div className="city-filter-bar">
+          <input
+            type="text"
+            value={cityInput}
+            onChange={(e) => setCityInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') applyCityFilter(); }}
+            placeholder="Введите город"
+            className="city-filter-input"
+          />
+          <button className="sort-btn" onClick={applyCityFilter}>По городу</button>
+          {cityFilter && (
+            <button className="sort-btn" onClick={() => { setCityInput(''); setCityFilter(''); }}>
+              Сброс
+            </button>
+          )}
+        </div>
         <span className="results-count">{products.length} объявлений</span>
       </div>
 
@@ -84,6 +133,7 @@ export default function HomePage() {
       ) : products.length === 0 ? (
         <div className="empty-state">Нет объявлений в этой категории</div>
       ) : (
+        <>
         <div className="products-grid">
           {products.map(product => (
             <NavLink to={`/product/${product.id}`} key={product.id} className="product-card">
@@ -129,6 +179,10 @@ export default function HomePage() {
             </NavLink>
           ))}
         </div>
+        <div ref={loadMoreRef} style={{ height: 1 }} />
+        {loadingMore && <div className="loading-state" style={{ minHeight: 80 }}>Загружаем ещё...</div>}
+        {!hasMore && products.length > 0 && <div className="results-count" style={{ textAlign: 'center', width: '100%', marginTop: 10 }}>Больше объявлений нет</div>}
+        </>
       )}
     </div>
   );

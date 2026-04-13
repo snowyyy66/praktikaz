@@ -227,6 +227,7 @@
   align-items: center;
   gap: 16px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .profile-title-row h1 {
@@ -312,3 +313,84 @@
   cursor: pointer;
 }
 .btn-cancel:hover { background: var(--bg-hover); color: #fff; }
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.role-badge.user {
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.role-badge.admin {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.achievement-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.achievement-chip {
+  min-width: 220px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.achievement-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.achievement-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.achievement-chip.gray {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+.achievement-chip.teal {
+  background: rgba(20, 184, 166, 0.14);
+  border-color: rgba(20, 184, 166, 0.35);
+  color: #5eead4;
+}
+.achievement-chip.green {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+.achievement-chip.blue {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+}
+.achievement-chip.purple {
+  background: rgba(168, 85, 247, 0.16);
+  border-color: rgba(168, 85, 247, 0.38);
+  color: #d8b4fe;
+}
+.achievement-chip.gold {
+  background: rgba(250, 204, 21, 0.16);
+  border-color: rgba(250, 204, 21, 0.4);
+  color: #fcd34d;
+}

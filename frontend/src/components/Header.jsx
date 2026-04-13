@@ -7,12 +7,16 @@ import './Header.css';
 export default function Header() {
   const [query, setQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
     const load = () => {
       api.getNotifications(getUserId())
         .then(data => setUnreadCount(data.filter(n => !n.is_read).length))
+        .catch(() => {});
+      api.getConversations(getUserId())
+        .then(data => setUnreadMessages(data.reduce((sum, c) => sum + (parseInt(c.unread_count, 10) || 0), 0)))
         .catch(() => {});
     };
     load();
@@ -44,8 +48,9 @@ export default function Header() {
       </div>
 
       <div className="header-right">
-        <button className="icon-btn" title="Сообщения" onClick={() => navigate('/messages')}>
+        <button className="icon-btn notif-btn" title="Сообщения" onClick={() => { navigate('/messages'); setUnreadMessages(0); }}>
           <MessageSquare size={20} />
+          {unreadMessages > 0 && <span className="notif-count">{unreadMessages}</span>}
         </button>
         <button className="icon-btn notif-btn" title="Уведомления" onClick={() => { navigate('/notifications'); setUnreadCount(0); }}>
           <Bell size={20} />

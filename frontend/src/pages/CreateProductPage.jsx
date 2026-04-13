@@ -4,6 +4,9 @@ import { ArrowLeft, Upload, X } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './CreateProductPage.css';
 
+const MAX_FILES = 10;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
 const CATEGORY_CONDITIONS = {
   transport: ['Б/У', 'Новое'],
   realestate: ['Вторичка', 'Новостройка'],
@@ -55,6 +58,7 @@ export default function CreateProductPage() {
   const [auctionEnds, setAuctionEnds] = useState('');
   const [auctionStep, setAuctionStep] = useState('500');
   const [details, setDetails] = useState({});
+  const [photoError, setPhotoError] = useState('');
 
   const handleChange = (e) => {
     const updated = { ...formData, [e.target.name]: e.target.value };
@@ -73,8 +77,17 @@ export default function CreateProductPage() {
 
   const handlePhotos = (e) => {
     const files = Array.from(e.target.files);
-    const previews = files.map(f => ({ file: f, url: URL.createObjectURL(f) }));
-    setPhotos(prev => [...prev, ...previews].slice(0, 10));
+    const valid = [];
+    const errors = [];
+    for (const f of files) {
+      if (!f.type?.startsWith('image/')) { errors.push(`${f.name}: не изображение`); continue; }
+      if (f.size > MAX_FILE_SIZE) { errors.push(`${f.name}: больше 5MB`); continue; }
+      valid.push({ file: f, url: URL.createObjectURL(f) });
+      if (valid.length >= MAX_FILES) break;
+    }
+    if (errors.length) setPhotoError(errors.slice(0, 2).join('; '));
+    else setPhotoError('');
+    setPhotos(prev => [...prev, ...valid].slice(0, MAX_FILES));
   };
 
   const removePhoto = (idx) => {
@@ -108,9 +121,7 @@ export default function CreateProductPage() {
       const data = await api.createProduct(payload);
 
       if (photos.length > 0 && data.id) {
-        const fd = new FormData();
-        photos.forEach(p => fd.append('images', p.file));
-        await fetch(`http://localhost:3000/api/products/${data.id}/images`, { method: 'POST', body: fd });
+        await api.uploadProductImages(data.id, getUserId(), photos.map(p => p.file));
       }
 
       navigate('/my-products');
@@ -253,6 +264,7 @@ export default function CreateProductPage() {
                 ))}
               </div>
             )}
+            {photoError && <div style={{ marginTop: '8px', color: '#ef4444', fontSize: '12px' }}>{photoError}</div>}
           </div>
 
           <button type="submit" className="btn-submit" disabled={loading}>

@@ -1,5 +1,6 @@
 import { NavLink, Link, useSearchParams } from 'react-router-dom';
-import { LayoutGrid, Gavel, Car, Home, Box, Shirt, Briefcase, KeyRound, Heart, Package, Clock, User, LogOut } from 'lucide-react';
+import { LayoutGrid, Gavel, Car, Home, Box, Shirt, Briefcase, KeyRound, Heart, Package, Clock, User, LogOut, Shield } from 'lucide-react';
+import { isAdmin } from '../api';
 import './Sidebar.css';
 
 const categories = [
@@ -64,6 +65,12 @@ export default function Sidebar({ onOpenAuth }) {
           <Clock size={18} />
           <span>История покупок</span>
         </NavLink>
+        {isAdmin() && (
+          <NavLink to="/admin" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <Shield size={18} />
+            <span>Админка</span>
+          </NavLink>
+        )}
 
         <div className="spacer"></div>
 

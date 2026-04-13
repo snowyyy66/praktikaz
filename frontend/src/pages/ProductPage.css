@@ -19,15 +19,23 @@
 .product-image-large {
   position: relative;
   width: 100%;
-  height: 360px;
+  aspect-ratio: 16 / 9;
+  min-height: 320px;
+  max-height: 520px;
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--bg-card);
+  background: #0b0d12;
   border: 1px solid var(--border);
   margin-bottom: 16px;
 }
-.product-image-large img { width: 100%; height: 100%; object-fit: cover; }
-.product-main-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.product-image-large img { width: 100%; height: 100%; object-fit: contain; }
+.product-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: inherit;
+}
 
 .product-image-thumbs {
   display: flex;

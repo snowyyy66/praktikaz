@@ -12,6 +12,7 @@ import AuthPage from './pages/AuthPage';
 import CreateProductPage from './pages/CreateProductPage';
 import MessagesPage from './pages/MessagesPage';
 import NotificationsPage from './pages/NotificationsPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,12 +36,14 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/product/:id" element={<ProductPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:id" element={<ProfilePage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/my-products" element={<MyProductsPage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/create" element={<CreateProductPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </div>
       </main>

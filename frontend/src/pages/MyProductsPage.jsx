@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Eye, Heart, Pencil, Trash2, X, Check } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { api, getUserId } from '../api';
 import './HomePage.css';
 import './MyProductsPage.css';
+
+const MAX_FILES = 10;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export default function MyProductsPage() {
   const [products, setProducts] = useState([]);
@@ -11,6 +15,9 @@ export default function MyProductsPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [editPhotos, setEditPhotos] = useState([]);
+  const [photoError, setPhotoError] = useState('');
+  const cardImgUrl = (src) => (src?.startsWith('/uploads/') ? `http://localhost:3000${src}` : src);
 
   useEffect(() => {
     loadProducts();
@@ -34,6 +41,35 @@ export default function MyProductsPage() {
       description: product.description,
     });
     setEditingProduct(product);
+    setEditPhotos([]);
+    setPhotoError('');
+  }
+
+  function handleEditPhotos(e) {
+    const files = Array.from(e.target.files || []);
+    const valid = [];
+    const errors = [];
+    for (const f of files) {
+      if (!f.type?.startsWith('image/')) { errors.push(`${f.name}: не изображение`); continue; }
+      if (f.size > MAX_FILE_SIZE) { errors.push(`${f.name}: больше 5MB`); continue; }
+      valid.push(f);
+      if (valid.length >= MAX_FILES) break;
+    }
+    if (errors.length) setPhotoError(errors.slice(0, 2).join('; '));
+    else setPhotoError('');
+    setEditPhotos(valid);
+  }
+
+  async function handleDeleteImage(imageUrl) {
+    if (!editingProduct) return;
+    if (!confirm('Удалить эту фотографию?')) return;
+    try {
+      const res = await api.deleteProductImage(editingProduct.id, imageUrl, getUserId(), getUserId());
+      setEditingProduct(prev => ({ ...prev, images: res.images || [] }));
+      setProducts(prev => prev.map(p => (p.id === editingProduct.id ? { ...p, images: res.images || [] } : p)));
+    } catch (err) {
+      alert(err.message || 'Не удалось удалить фото');
+    }
   }
 
   async function handleSave(e) {
@@ -41,8 +77,12 @@ export default function MyProductsPage() {
     setSaving(true);
     try {
       await api.updateProduct(editingProduct.id, { ...editForm, price: parseInt(editForm.price) || 0 });
+      if (editPhotos.length) {
+        await api.uploadProductImages(editingProduct.id, getUserId(), editPhotos, getUserId());
+      }
       setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...editForm, price: parseInt(editForm.price) || 0 } : p));
       setEditingProduct(null);
+      setEditPhotos([]);
     } catch (err) {
       alert('Ошибка при сохранении');
     } finally {
@@ -52,7 +92,7 @@ export default function MyProductsPage() {
 
   async function handleDelete(product, e) {
     e.preventDefault();
-    if (!confirm(`Снять с публикации "${product.title}"?`)) return;
+    if (!confirm(`Удалить объявление "${product.title}" навсегда?\nБудут удалены фото и связанные данные.`)) return;
     try {
       await api.deleteProduct(product.id);
       setProducts(products.filter(p => p.id !== product.id));
@@ -79,7 +119,7 @@ export default function MyProductsPage() {
               <NavLink to={`/product/${product.id}`} className="product-card">
                 <div className="card-image">
                   {product.images?.[0]
-                    ? <img src={product.images[0]} alt={product.title} className="card-img" loading="lazy" />
+                    ? <img src={cardImgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
                     : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase()}</div>
                   }
                   <div className="card-badges">
@@ -103,7 +143,7 @@ export default function MyProductsPage() {
                 <button className="btn-edit" onClick={(e) => openEdit(product, e)} title="Редактировать">
                   <Pencil size={14} /> Редактировать
                 </button>
-                <button className="btn-delete" onClick={(e) => handleDelete(product, e)} title="Снять с публикации">
+                <button className="btn-delete" onClick={(e) => handleDelete(product, e)} title="Удалить навсегда">
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -112,7 +152,7 @@ export default function MyProductsPage() {
         </div>
       )}
 
-      {editingProduct && (
+      {editingProduct && typeof document !== 'undefined' && createPortal((
         <div className="modal-overlay" onClick={() => setEditingProduct(null)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -158,6 +198,23 @@ export default function MyProductsPage() {
                 <label>Описание</label>
                 <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={4} />
               </div>
+              <div className="form-group">
+                <label>Добавить фото с устройства</label>
+                <input type="file" accept="image/*" multiple onChange={handleEditPhotos} />
+                {editPhotos.length > 0 && <small>Выбрано файлов: {editPhotos.length}</small>}
+                {photoError && <small style={{ color: '#ef4444' }}>{photoError}</small>}
+              </div>
+              <div className="form-group">
+                <label>Текущие фото объявления</label>
+                <div className="edit-photo-grid">
+                  {(editingProduct.images || []).map((img) => (
+                    <div key={img} className="edit-photo-item">
+                      <img src={img.startsWith('/uploads/') ? `http://localhost:3000${img}` : img} alt="" />
+                      <button type="button" className="edit-photo-remove" onClick={() => handleDeleteImage(img)}>Удалить</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={() => setEditingProduct(null)}>Отмена</button>
                 <button type="submit" className="btn-save" disabled={saving}>
@@ -167,7 +224,7 @@ export default function MyProductsPage() {
             </form>
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }

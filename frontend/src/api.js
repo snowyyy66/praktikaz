@@ -13,8 +13,14 @@ export async function fetchApi(endpoint, options = {}) {
 
 /** ID текущего пользователя: сначала dev-override в sessionStorage, иначе после логина — localStorage */
 export const getUserId = () => {
-  return sessionStorage.getItem('userIdOverride') || localStorage.getItem('userId') || null;
+  // Убираем старый dev-override, который мог залипнуть и ломать вход.
+  if (sessionStorage.getItem('userIdOverride') != null) {
+    sessionStorage.removeItem('userIdOverride');
+  }
+  return localStorage.getItem('userId') || null;
 };
+
+export const isAdmin = () => localStorage.getItem('isAdmin') === '1';
 
 export const api = {
   /** Вход: проверяет почту/пароль, пишет userId в localStorage */
@@ -23,7 +29,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(credentials)
     });
-    if (res.success) localStorage.setItem('userId', res.user_id);
+    if (res.success) {
+      localStorage.setItem('userId', res.user_id);
+      localStorage.setItem('isAdmin', res.is_admin ? '1' : '0');
+    }
     return res;
   },
 
@@ -33,14 +42,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data)
     });
-    if (res.success) localStorage.setItem('userId', res.user_id);
+    if (res.success) {
+      localStorage.setItem('userId', res.user_id);
+      localStorage.setItem('isAdmin', res.is_admin ? '1' : '0');
+    }
     return res;
   },
 
   /** Выход: очищает localStorage и dev-override сессии */
   logout: () => {
     localStorage.removeItem('userId');
-    sessionStorage.removeItem('userIdOverride');
+    localStorage.removeItem('isAdmin');
   },
 
   /** Создать объявление (тело — поля товара + seller_id) */
@@ -53,7 +65,12 @@ export const api = {
   /** Список объявлений (фильтры: category, search, sort, auction, user_id для избранного) */
   getProducts: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return fetchApi(`/products${qs ? '?' + qs : ''}`);
+    return fetchApi(`/products${qs ? '?' + qs : ''}`).then((data) => {
+      if (Array.isArray(data)) {
+        return { items: data, page: 1, limit: data.length, has_more: false };
+      }
+      return data;
+    });
   },
 
   /** Одно объявление по id; подставляет user_id для флага «в избранном» */
@@ -70,9 +87,31 @@ export const api = {
   /** Увеличить счётчик лайков (устаревший сценарий; избранное — через toggleFavorite) */
   likeProduct: (id) => fetchApi(`/products/${id}/like`, { method: 'POST' }),
   /** Обновить объявление */
-  updateProduct: (id, data) => fetchApi(`/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateProduct: (id, data, actorId = getUserId()) => fetchApi(`/products/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ...data, seller_id: data?.seller_id ?? getUserId(), actor_id: actorId })
+  }),
   /** Снять объявление с публикации (мягкое удаление) */
-  deleteProduct: (id) => fetchApi(`/products/${id}`, { method: 'DELETE' }),
+  deleteProduct: (id, sellerId = getUserId(), actorId = getUserId()) =>
+    fetchApi(`/products/${id}?seller_id=${encodeURIComponent(sellerId)}&actor_id=${encodeURIComponent(actorId)}`, { method: 'DELETE' }),
+  /** Загрузить фото объявления (multipart) */
+  uploadProductImages: async (productId, sellerId, files, actorId = getUserId()) => {
+    const fd = new FormData();
+    for (const f of files) fd.append('images', f);
+    fd.append('seller_id', sellerId);
+    fd.append('actor_id', actorId);
+    const res = await fetch(`http://localhost:3000/api/products/${productId}/images`, { method: 'POST', body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+    return data;
+  },
+  /** Удалить одну фото из объявления */
+  deleteProductImage: (productId, imageUrl, sellerId = getUserId(), actorId = getUserId()) =>
+    fetchApi(`/products/${productId}/images`, {
+      method: 'DELETE',
+      body: JSON.stringify({ image_url: imageUrl, seller_id: sellerId, actor_id: actorId })
+    }),
+
 
   /** Поиск по названию и описанию */
   search: (q) => fetchApi(`/search?q=${encodeURIComponent(q)}`),
@@ -115,7 +154,12 @@ export const api = {
   uploadAvatar: (userId, file) => {
     const fd = new FormData();
     fd.append('avatar', file);
-    return fetch(`http://localhost:3000/api/users/${userId}/avatar`, { method: 'POST', body: fd }).then(r => r.json());
+    return fetch(`http://localhost:3000/api/users/${userId}/avatar`, { method: 'POST', body: fd })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || `API Error: ${r.status}`);
+        return data;
+      });
   },
 
   /** Отзывы к товару */
@@ -125,11 +169,13 @@ export const api = {
 
   /** Список диалогов пользователя */
   getConversations: (userId) => fetchApi(`/conversations?user_id=${userId}`),
+  /** Админка: все объявления */
+  getAdminProducts: (userId) => fetchApi(`/admin/products?user_id=${encodeURIComponent(userId)}`),
   /** Найти или создать чат между двумя пользователями (опционально по объявлению) */
   createConversation: (user1_id, user2_id, product_id) =>
     fetchApi('/conversations', { method: 'POST', body: JSON.stringify({ user1_id, user2_id, product_id }) }),
   /** Сообщения в диалоге */
-  getMessages: (convId) => fetchApi(`/conversations/${convId}/messages`),
+  getMessages: (convId, userId = getUserId()) => fetchApi(`/conversations/${convId}/messages?user_id=${encodeURIComponent(userId)}`),
   /** Отправить сообщение в диалог */
   sendMessage: (convId, senderId, text) =>
     fetchApi(`/conversations/${convId}/messages`, { method: 'POST', body: JSON.stringify({ sender_id: senderId, text }) }),

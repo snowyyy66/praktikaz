@@ -303,6 +303,10 @@ export default function ProductPage() {
             </div>
 
             <div className="seller-actions">
+              <button className="btn-secondary" onClick={() => navigate(`/profile/${product.seller_id}`)}>
+                <User size={16} />
+                Профиль продавца
+              </button>
               {bought ? (
                 <div className="btn-bought">
                   <CheckCircle size={16} />

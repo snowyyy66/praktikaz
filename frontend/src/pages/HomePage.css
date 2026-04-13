@@ -18,6 +18,28 @@
   gap: 6px;
 }
 
+.city-filter-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.city-filter-input {
+  height: 36px;
+  min-width: 170px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: #fff;
+  font-size: 13px;
+}
+
+.city-filter-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .sort-btn {
   padding: 8px 16px;
   border-radius: var(--radius-sm);
