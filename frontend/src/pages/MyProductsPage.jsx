@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Eye, Heart, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Eye, Heart, Pencil, Trash2, X, Check, Upload } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { api, getUserId } from '../api';
 import './HomePage.css';
@@ -198,11 +198,22 @@ export default function MyProductsPage() {
                 <label>Описание</label>
                 <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={4} />
               </div>
-              <div className="form-group">
+            <div className="form-group">
                 <label>Добавить фото с устройства</label>
-                <input type="file" accept="image/*" multiple onChange={handleEditPhotos} />
-                {editPhotos.length > 0 && <small>Выбрано файлов: {editPhotos.length}</small>}
-                {photoError && <small style={{ color: '#ef4444' }}>{photoError}</small>}
+                <div className="file-input-wrapper">
+                  <label className="file-upload-trigger" htmlFor="edit-photos-upload">
+                    <Upload size={18} />
+                    {editPhotos.length > 0 ? `Выбрано файлов: ${editPhotos.length}` : 'Выберите фотографии'}
+                  </label>
+                  <input 
+                    id="edit-photos-upload"
+                    type="file" 
+                    accept="image/*" 
+                    multiple 
+                    onChange={handleEditPhotos} 
+                  />
+                </div>
+                {photoError && <small style={{ color: 'var(--danger)', marginTop: '8px', display: 'block' }}>{photoError}</small>}
               </div>
               <div className="form-group">
                 <label>Текущие фото объявления</label>

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles, X } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './ProductPage.css';
 
@@ -179,12 +179,30 @@ export default function ProductPage() {
   const [bidError, setBidError] = useState('');
   const [, setTick] = useState(0);
   const [rentHours, setRentHours] = useState(1);
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [buyForm, setBuyForm] = useState({
+    street: '', house: '', houseType: 'apartment', entrance: '', floor: '', apartment: '',
+    date: new Date().toISOString().split('T')[0], time: ''
+  });
+  const [buyStep, setBuyStep] = useState(1);
+  const [buyError, setBuyError] = useState('');
+  const [fullSlots, setFullSlots] = useState([]);
+  const [checkingSlots, setCheckingSlots] = useState(false);
 
   const refreshProduct = useCallback(() => {
     return api.getProduct(id).then(data => { setProduct(data); return data; }).catch(err => console.error(err));
   }, [id]);
 
+  const viewIncremented = useRef(false);
+
   useEffect(() => {
+    if (!id) return;
+    // Guard against double increment in React Strict Mode (dev) on the same mount
+    if (!viewIncremented.current) {
+      api.incrementProductViews(id).catch(err => console.error('Failed to increment views:', err));
+      viewIncremented.current = true;
+    }
+
     setLoading(true);
     Promise.all([api.getProduct(id), api.getProductReviews(id)])
       .then(([data, revs]) => { setProduct(data); setReviews(revs); })
@@ -202,6 +220,15 @@ export default function ProductPage() {
     const iv = setInterval(() => { refreshProduct(); api.getProductBids(id).then(setBidRows).catch(() => {}); }, 4000);
     return () => clearInterval(iv);
   }, [product?.auction_live, id, refreshProduct]);
+
+  useEffect(() => {
+    if (!showBuyModal || !product) return;
+    setCheckingSlots(true);
+    api.getProductAvailability(product.id, buyForm.date)
+      .then(res => setFullSlots(res.full_slots || []))
+      .catch(() => setFullSlots([]))
+      .finally(() => setCheckingSlots(false));
+  }, [showBuyModal, product, buyForm.date]);
 
   useEffect(() => {
     if (!product?.auction_live) return;
@@ -239,33 +266,75 @@ export default function ProductPage() {
     }
   };
 
-  const handleBuy = async () => {
-    const isAuctionProd = product.sale_type === 'auction';
-    const isRentProd = product.category_id === 'rent';
-    const d = product.details || {};
-    const minH = Math.max(1, parseInt(d.min_hours, 10) || 1);
-    const maxH = Math.max(minH, parseInt(d.max_hours, 10) || 168);
+  const handleBuyClick = () => {
+    if (!getUserId()) { setBuyError('Пожалуйста, войдите в аккаунт'); return; }
+    setBuyStep(1);
+    setBuyError('');
+    setShowBuyModal(true);
+  };
 
-    let pay = product.price;
-    if (isAuctionProd && product.auction_high_bid) pay = product.auction_high_bid;
-    if (isRentProd) {
-      pay = product.price * rentHours;
-      if (rentHours < minH || rentHours > maxH) {
-        alert(`Выберите срок от ${minH} до ${maxH} часов`);
+  const handleModalNext = () => {
+    const isService = product.category_id === 'services';
+    const hasDelivery = ['services', 'items', 'clothing'].includes(product.category_id);
+    setBuyError('');
+
+    if (buyStep === 1) {
+      if (hasDelivery) setBuyStep(2);
+      else handleConfirmPurchase();
+    } else if (buyStep === 2) {
+      if (!buyForm.street || !buyForm.house) {
+        setBuyError('Пожалуйста, укажите улицу и дом');
         return;
       }
-      if (!confirm(`Аренда «${product.title}» на ${rentHours} ч.\nИтого: ${pay.toLocaleString('ru-RU')} ₽?`)) return;
-    } else if (!confirm(`Купить "${product.title}" за ${pay.toLocaleString('ru-RU')} ₽?`)) {
+      if (isService) setBuyStep(3);
+      else handleConfirmPurchase();
+    } else if (buyStep === 3) {
+      if (!buyForm.time) {
+        setBuyError('Пожалуйста, выберите время');
+        return;
+      }
+      handleConfirmPurchase();
+    }
+  };
+
+  const handleModalBack = () => {
+    if (buyStep > 1) setBuyStep(p => p - 1);
+  };
+
+  const handleConfirmPurchase = async () => {
+    const isService = product.category_id === 'services';
+    const isRentProd = product.category_id === 'rent';
+    const isDeliveryNeeded = ['services', 'items', 'clothing'].includes(product.category_id);
+    setBuyError('');
+    
+    if (isDeliveryNeeded && (!buyForm.street || !buyForm.house)) {
+      setBuyError('Укажите адрес для ' + (isService ? 'выезда мастера' : 'доставки'));
+      return;
+    }
+    if (isService && !buyForm.time) {
+      setBuyError('Пожалуйста, выберите время');
       return;
     }
 
     setBuying(true);
     try {
-      await api.createOrder(getUserId(), product.id, isRentProd ? { rent_hours: rentHours } : {});
+      const payload = {
+        rent_hours: isRentProd ? rentHours : undefined,
+        appointment_date: isService ? buyForm.date : undefined,
+        appointment_time: isService ? buyForm.time : undefined,
+        address_street: buyForm.street,
+        address_house: buyForm.house,
+        house_type: buyForm.houseType,
+        address_entrance: buyForm.entrance,
+        address_floor: buyForm.floor,
+        address_apartment: buyForm.apartment
+      };
+      
+      await api.createOrder(getUserId(), product.id, payload);
       setBought(true);
-      if (!isRentProd) setProduct(prev => ({ ...prev, is_active: 0 }));
+      // We don't close modal immediately, we show success inside it
     } catch (err) {
-      alert(err.message || 'Ошибка при оформлении покупки');
+      setBuyError(err.message || 'Ошибка при оформлении заказа');
     } finally {
       setBuying(false);
     }
@@ -493,7 +562,7 @@ export default function ProductPage() {
                 <p className="auction-ended-msg">Торги окончены, ставок не было.</p>
               )}
               {winnerCanBuy && (
-                <button className="btn-buy" onClick={handleBuy} disabled={buying}>
+                <button className="btn-buy" onClick={handleBuyClick} disabled={buying}>
                   <ShoppingBag size={16} />
                   {buying ? 'Оформление...' : `Оформить победу — ${highBid.toLocaleString('ru-RU')} ₽`}
                 </button>
@@ -513,17 +582,21 @@ export default function ProductPage() {
                     Итого: <strong>{rentTotal.toLocaleString('ru-RU')} ₽</strong>
                     <span className="rent-formula">({product.price.toLocaleString('ru-RU')} ₽ × {rentHours} ч.)</span>
                   </div>
-                  <button type="button" className="btn-buy" onClick={handleBuy} disabled={buying}>
+                  <button type="button" className="btn-buy" onClick={handleBuyClick} disabled={buying}>
                     <ShoppingBag size={16} />
                     {buying ? 'Оформление...' : `Арендовать на ${rentHours} ч.`}
                   </button>
                 </div>
               )}
               {!isAuction && !isRent && !isSeller && product.is_active === 1 && (
-                <button className="btn-buy" onClick={handleBuy} disabled={buying}>
-                  <ShoppingBag size={16} />
-                  {buying ? 'Оформление...' : `Купить за ${product.price.toLocaleString('ru-RU')} ₽`}
-                </button>
+                bought ? (
+                  <div className="btn-bought"><CheckCircle size={18} /> Оформлено</div>
+                ) : (
+                  <button className="btn-buy" onClick={handleBuyClick} disabled={buying}>
+                    <ShoppingBag size={18} /> 
+                    {buying ? 'Оформление...' : (isAuction ? 'Оформить по итогам' : (isRent ? 'Забронировать' : `Купить за ${product.price.toLocaleString('ru-RU')} ₽`))}
+                  </button>
+                )
               )}
               {!isSeller && (
                 <button className="btn-primary" onClick={async () => {
@@ -792,6 +865,151 @@ export default function ProductPage() {
         )}
         {reviewSubmitted && <p className="review-thanks">Спасибо за ваш отзыв!</p>}
       </div>
+      {/* Buy Modal */}
+      {showBuyModal && (
+        <div className="modal-overlay" onClick={() => setShowBuyModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-header-info">
+                <h2>Оформление заказа</h2>
+                <div className="step-indicator">Шаг {buyStep} из {
+                  product.category_id === 'services' ? 3 : (['items', 'clothing'].includes(product.category_id) ? 2 : 1)
+                }</div>
+              </div>
+              <button className="btn-close-modal" onClick={() => setShowBuyModal(false)}><X size={20} /></button>
+            </div>
+            
+            <div className="modal-body">
+              {bought ? (
+                <div className="modal-success-state step-fade-in">
+                  <div className="success-icon-bg">
+                    <CheckCircle size={64} color="#16a34a" />
+                  </div>
+                  <h3>Заказ успешно оформлен!</h3>
+                  <p>Информацию о заказе вы можете найти в личном кабинете. Продавец свяжется с вами в ближайшее время.</p>
+                  <button className="btn-confirm-buy" onClick={() => setShowBuyModal(false)}>Отлично</button>
+                </div>
+              ) : (
+                <>
+                  {buyError && (
+                    <div className="modal-error-box step-fade-in">
+                      <Zap size={16} />
+                      {buyError}
+                    </div>
+                  )}
+
+                  {buyStep === 1 && (
+                    <div className="modal-section step-fade-in">
+                      <p className="confirm-msg">
+                        Вы подтверждаете покупку объявления <strong>«{product.title}»</strong>? 
+                      </p>
+                      <p className="confirm-hint">
+                        {['services', 'items', 'clothing'].includes(product.category_id) 
+                          ? 'На следующем шаге вам нужно будет указать адрес.'
+                          : 'После подтверждения продавец получит уведомление.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {buyStep === 2 && (
+                    <div className="modal-section step-fade-in">
+                      <h3>Адрес {product.category_id === 'services' ? 'выезда специалиста' : 'доставки'}</h3>
+                      <div className="house-type-toggle">
+                        <button 
+                          className={`house-toggle-btn ${buyForm.houseType === 'apartment' ? 'active' : ''}`}
+                          onClick={() => setBuyForm(p => ({...p, houseType: 'apartment'}))}
+                        >Квартира</button>
+                        <button 
+                          className={`house-toggle-btn ${buyForm.houseType === 'private' ? 'active' : ''}`}
+                          onClick={() => setBuyForm(p => ({...p, houseType: 'private'}))}
+                        >Частный дом</button>
+                      </div>
+
+                      <div className="form-grid">
+                        <div className="form-field full">
+                          <label className="form-label">Улица</label>
+                          <input className="form-input" placeholder="Название улицы" value={buyForm.street} onChange={e => setBuyForm(p => ({...p, street: e.target.value}))} />
+                        </div>
+                        <div className="form-field">
+                          <label className="form-label">Дом</label>
+                          <input className="form-input" placeholder="№" value={buyForm.house} onChange={e => setBuyForm(p => ({...p, house: e.target.value}))} />
+                        </div>
+                        
+                        {buyForm.houseType === 'apartment' && (
+                          <>
+                            <div className="form-field">
+                              <label className="form-label">Подъезд</label>
+                              <input className="form-input" placeholder="№" value={buyForm.entrance} onChange={e => setBuyForm(p => ({...p, entrance: e.target.value}))} />
+                            </div>
+                            <div className="form-field">
+                              <label className="form-label">Этаж</label>
+                              <input className="form-input" placeholder="№" value={buyForm.floor} onChange={e => setBuyForm(p => ({...p, floor: e.target.value}))} />
+                            </div>
+                            <div className="form-field">
+                              <label className="form-label">Квартира</label>
+                              <input className="form-input" placeholder="№" value={buyForm.apartment} onChange={e => setBuyForm(p => ({...p, apartment: e.target.value}))} />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {buyStep === 3 && (
+                    <div className="modal-section step-fade-in">
+                      <h3>Дата и время (12:00 - 20:00)</h3>
+                      <input 
+                        type="date" 
+                        className="form-input date-selector" 
+                        min={new Date().toISOString().split('T')[0]}
+                        value={buyForm.date}
+                        onChange={e => setBuyForm(p => ({...p, date: e.target.value, time: ''}))}
+                      />
+                      <div className="time-slots">
+                        {['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(t => (
+                          <button 
+                            key={t}
+                            className={`time-slot-btn ${buyForm.time === t ? 'selected' : ''}`}
+                            disabled={fullSlots.includes(t) || checkingSlots}
+                            onClick={() => setBuyForm(p => ({...p, time: t}))}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                      {checkingSlots && <p className="auction-meta" style={{marginTop: 8}}>Проверка доступности...</p>}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {!bought && (
+              <div className="modal-footer">
+                <div className="price-summary">
+                  <span className="price-summary-label">К оплате:</span>
+                  <span className="price-summary-val">
+                    {product.category_id === 'rent' 
+                      ? (product.price * rentHours).toLocaleString('ru-RU') 
+                      : (product.sale_type === 'auction' && product.auction_high_bid ? product.auction_high_bid : product.price).toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <div className="modal-actions">
+                  {buyStep > 1 && (
+                    <button className="btn-modal-back" onClick={handleModalBack}>Назад</button>
+                  )}
+                  <button className="btn-confirm-buy" onClick={handleModalNext} disabled={buying}>
+                    {buying ? 'Оформление...' : (
+                      (buyStep === 1 && ['services', 'items', 'clothing'].includes(product.category_id)) ? 'Продолжить' :
+                      (buyStep === 2 && product.category_id === 'services') ? 'Продолжить' : 'Подтвердить заказ'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

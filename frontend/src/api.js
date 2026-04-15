@@ -79,6 +79,8 @@ export const api = {
     const q = uid ? `?user_id=${encodeURIComponent(uid)}` : '';
     return fetchApi(`/products/${id}${q}`);
   },
+  /** Инкремент просмотров */
+  incrementProductViews: (id) => fetchApi(`/products/${id}/views`, { method: 'POST' }),
   /** История ставок по аукционному лоту */
   getProductBids: (id) => fetchApi(`/products/${id}/bids`),
   /** Сделать ставку на аукцион */
@@ -137,16 +139,18 @@ export const api = {
       body: JSON.stringify({ user_id: userId, product_id: productId })
     }),
 
+  /** Получить занятые слоты на дату */
+  getProductAvailability: (id, date) => fetchApi(`/products/${id}/availability?date=${encodeURIComponent(date)}`),
   /** История заказов пользователя (покупки и продажи) */
   getUserOrders: (userId) => fetchApi(`/users/${userId}/orders`),
   /** Оформить покупку/аренду; для аренды передать options.rent_hours */
-  createOrder: (buyerId, productId, options = {}) =>
+  createOrder: (buyerId, productId, data = {}) =>
     fetchApi('/orders', {
       method: 'POST',
       body: JSON.stringify({
         buyer_id: buyerId,
         product_id: productId,
-        ...(options.rent_hours != null ? { rent_hours: options.rent_hours } : {}),
+        ...data
       }),
     }),
 
