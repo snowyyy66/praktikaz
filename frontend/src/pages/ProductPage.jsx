@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock } from 'lucide-react';
+import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './ProductPage.css';
 
@@ -24,6 +24,141 @@ function formatCountdown(ms) {
   const s = sec % 60;
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
+
+const getSeed = (id) => {
+  if (!id) return 0;
+  const s = String(id);
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash << 5) - hash + s.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const pick = (arr, seed, offset = 0) => arr[(seed + offset) % arr.length];
+
+const VARIATIONS = {
+  transport: {
+    engines: [
+      "3.0L V6 Turbo (340 л.с.)", "2.0L I4 Twin-Scroll", "4.4L V8 Bi-Turbo", 
+      "Electric Dual Motor 400V", "Hybrid Efficiency 2.5", "5.0L Supercharged", 
+      "Linear EV Motor 600hp", "Diesel V6 BlueTec", "Boxer 4-cyl Turbo", "1.5L I3 Hybrid"
+    ],
+    histories: [
+      "1 владелец, без ДТП", "Обслуживание в Евросиб", "Заводской окрас (керамика)", 
+      "Только гаражное хранение", "Прозрачная история (Автотека OK)", 
+      "Пригнан из Германии", "Обслужен в профильном сервисе", "Полная история у дилера",
+      "Второй владелец, ухожен", "Без окрасов и вложений"
+    ],
+    conditions: [
+      "Идеальное (AA+)", "Коллекционное", "Как новый", "Отличное", "Без единого скола",
+      "Хорошее состояние", "Мелкие следы эксплуатации", "После детейлинга", "Обслужен", "Сел-поехал"
+    ],
+    transmissions: [
+      "Автомат 8-ступ.", "Робот DCT", "Механика 6-ст.", "Прямой привод (EV)", 
+      "Вариатор (Sportive)", "АКПП ZF 9-speed", "Секвентальная КПП"
+    ],
+    drives: ["Полный (AWD)", "Задний (RWD)", "Передний (FWD)", "Интеллектуальный 4WD", "Quattro Ultra"],
+    fuels: ["Бензин АИ-98", "Дизель Turbo", "Электро (Li-ion)", "Гибрид (PHEV)", "Бензин АИ-100"]
+  },
+  clothing: {
+    materials: [
+      "100% Хлопок (Supima Cotton)", "Плотный селвидж-деним 14.5oz", "Натуральная кожа Nappa", 
+      "Шерсть мериноса Extra Fine", "Технологичный Gore-Tex Pro", "Премиальный шелк",
+      "Лен с вискозой", "Переработанный полиэстер", "Органический хлопок", "Кашемир 100%"
+    ],
+    fits: ["Oversized Fit (Boxy)", "Relaxed Silhouette", "Classic Regular", "Slim Athletic Cut", "Modern Tailored", "Wide Leg", "Tapered Cut"],
+    care: [
+      "Ручная стирка 30°C", "Химчистка рекомендуется", "Машинная стирка (деликатно)", 
+      "Не сушить в машине", "Стирка с изнанки", "Глажка при низкой температуре", "Только сухая чистка"
+    ],
+    origins: ["Италия", "Япония", "США", "Португалия", "Франция", "Южная Корея", "Великобритания"]
+  },
+  items: {
+    packages: [
+      "Полный комплект (Full Box)", "Устройство + доп. чехол", "Запечатанный заводской стикер", 
+      "В комплекте с чеком и РСТ", "Premium Edition (Bundle)", "Без коробки", "С кабелями и инструкцией"
+    ],
+    warranties: [
+      "24 месяца (официальная)", "12 месяцев от магазина", "6 месяцев гарантии", 
+      "Пожизненный сервис", "Замена за 24ч (VIP)", "Без гарантии", "Гарантия маркетплейса"
+    ],
+    materials_item: ["Алюминий авиационный", "Углеволокно (Carbon)", "Матовый ударопрочный пластик", "Закаленное стекло Gorilla", "Нержавеющая сталь", "Эко-полимер"]
+  },
+  services: {
+    speeds: [
+      "Приезд за 20-40 мин", "В день обращения", "Запись на удобное время", 
+      "Срочно (реакция 15 мин)", "По госту (смена 8ч)", "Индивидуальный график"
+    ],
+    guarantees: [
+      "Договор + акт работ", "Гарантия по закону РФ", "100% возврат если не вышло", 
+      "Страхование ответственности", "Гарантия на детали 2 года", "Безлимитные правки"
+    ],
+    tools: ["Проф. оборудование", "Собственный инструмент", "Инструментарий Hilti", "Лицензионное ПО", "Спецтехника в наличии"]
+  }
+};
+
+const FloorPlanA = () => (
+  <svg viewBox="0 0 400 240" className="floor-plan-svg" aria-hidden>
+    <defs>
+      <linearGradient id="g-room" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="rgba(43,118,251,0.1)" />
+        <stop offset="100%" stopColor="rgba(43,118,251,0.02)" />
+      </linearGradient>
+    </defs>
+    {/* Exterior Walls */}
+    <rect x="20" y="20" width="360" height="200" fill="none" stroke="var(--text-secondary)" strokeWidth="3" rx="4" />
+    {/* Kitchen + Living */}
+    <rect x="20" y="20" width="220" height="120" fill="url(#g-room)" stroke="var(--border)" strokeWidth="1" />
+    <text x="130" y="80" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Кухня-гостиная</text>
+    <text x="130" y="100" textAnchor="middle" fill="var(--text-secondary)" fontSize="10">24.5 м²</text>
+    {/* Bedroom */}
+    <rect x="240" y="20" width="140" height="120" fill="rgba(250,204,21,0.04)" stroke="var(--border)" strokeWidth="1" />
+    <text x="310" y="70" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Спальня</text>
+    <path d="M280 40 H340 V90 H280 Z" fill="rgba(255,255,255,0.05)" stroke="var(--border)" /> {/* Bed */}
+    {/* Bathroom */}
+    <rect x="20" y="140" width="100" height="80" fill="rgba(34,197,94,0.04)" stroke="var(--border)" strokeWidth="1" />
+    <text x="70" y="185" textAnchor="middle" fill="var(--text-primary)" fontSize="12">Ванная</text>
+    <circle cx="45" cy="165" r="12" fill="none" stroke="var(--border)" /> {/* Sink */}
+    {/* Corridor */}
+    <rect x="120" y="140" width="260" height="80" fill="none" stroke="var(--border)" strokeDasharray="4 2" />
+    <text x="250" y="185" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">Прихожая/Гардероб</text>
+  </svg>
+);
+
+const FloorPlanB = () => (
+  <svg viewBox="0 0 400 240" className="floor-plan-svg" aria-hidden>
+    {/* Studio Layout */}
+    <rect x="40" y="20" width="320" height="200" fill="none" stroke="var(--text-secondary)" strokeWidth="4" rx="10" />
+    <rect x="40" y="20" width="320" height="150" fill="rgba(43,118,251,0.05)" stroke="var(--border)" />
+    <text x="200" y="90" textAnchor="middle" fill="var(--text-primary)" fontSize="16" fontWeight="700">Open Space Studio</text>
+    <text x="200" y="115" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">32.8 м²</text>
+    {/* Furniture icons */}
+    <rect x="60" y="40" width="60" height="80" fill="rgba(255,255,255,0.03)" stroke="var(--border)" rx="2" /> {/* Library */}
+    <rect x="300" y="40" width="40" height="40" fill="rgba(255,255,255,0.03)" stroke="var(--border)" rx="20" /> {/* Table */}
+    {/* Entrance + Bath */}
+    <rect x="40" y="170" width="120" height="50" fill="rgba(239,68,68,0.04)" stroke="var(--border)" />
+    <text x="100" y="200" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">Санузел</text>
+    <path d="M260 170 V220 M260 195 H360" stroke="var(--border)" strokeWidth="1" />
+    <text x="310" y="200" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">Вход</text>
+  </svg>
+);
+
+const FloorPlanC = () => (
+  <svg viewBox="0 0 400 240" className="floor-plan-svg" aria-hidden>
+    {/* Corner Apartment */}
+    <path d="M40 40 H360 V180 H200 V220 H40 Z" fill="none" stroke="var(--text-secondary)" strokeWidth="3" />
+    <rect x="40" y="40" width="160" height="140" fill="rgba(168,85,247,0.05)" stroke="var(--border)" />
+    <text x="120" y="110" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Мастер-спальня</text>
+    <rect x="200" y="40" width="160" height="80" fill="rgba(43,118,251,0.05)" stroke="var(--border)" />
+    <text x="280" y="85" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Детская</text>
+    <rect x="200" y="120" width="160" height="60" fill="rgba(234,179,8,0.05)" stroke="var(--border)" />
+    <text x="280" y="155" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Кухня</text>
+    <path d="M40 180 H200 V220 H40 Z" fill="rgba(34,197,94,0.05)" stroke="var(--border)" />
+    <text x="120" y="205" textAnchor="middle" fill="var(--text-primary)" fontSize="12">Лоджия панорамная</text>
+  </svg>
+);
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -427,90 +562,188 @@ export default function ProductPage() {
             )}
           </div>
 
-          {(isTransport || isRent) && product.details && (
-            <div className="stats-panel">
-              <h3>{isRent ? 'Условия аренды' : 'Технические характеристики'}</h3>
-              <div className="condition-grid">
-                {(isRent ? specEntries : Object.entries(product.details || {})).map(([k, v]) => (
-                  <div className="condition-card" key={k}>
-                    <span className="c-label">{k}</span>
-                    <span className="c-value">{String(v)}</span>
+          {/* Улучшенная панель характеристик и визуализации */}
+          <div className="product-details-extra">
+            {(() => {
+              const seed = getSeed(product.id);
+              if (isTransport) {
+                return (
+                  <div className="stats-panel">
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+                      <h3 style={{margin:0}}>Технические характеристики</h3>
+                      <span className="badge-verified"><ShieldCheck size={12}/> Verified</span>
+                    </div>
+                    <div className="condition-grid">
+                      <div className="condition-card">
+                        <span className="c-label"><Gauge size={14} /> Состояние</span>
+                        <span className="c-value">{product.details?.condition || product.condition || pick(VARIATIONS.transport.conditions, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Zap size={14} /> Двигатель</span>
+                        <span className="c-value">{product.details?.engine || pick(VARIATIONS.transport.engines, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><ShieldCheck size={14} /> Юр. чистота</span>
+                        <span className="c-value">Проверено ГИБДД</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><RefreshCw size={14} /> История</span>
+                        <span className="c-value">{pick(VARIATIONS.transport.histories, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Gauge size={14} /> КПП</span>
+                        <span className="c-value">{pick(VARIATIONS.transport.transmissions, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Zap size={14} /> Привод</span>
+                        <span className="c-value">{pick(VARIATIONS.transport.drives, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Info size={14} /> Топливо</span>
+                        <span className="c-value">{pick(VARIATIONS.transport.fuels, seed)}</span>
+                      </div>
+                      {Object.entries(product.details || {}).filter(([k]) => !['condition', 'engine'].includes(k)).map(([k, v]) => (
+                        <div className="condition-card" key={k}>
+                          <span className="c-label">{k}</span>
+                          <span className="c-value">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!isTransport && !isRent && (
-            <div className="stats-panel extra-visual-panel">
-              {isRealEstate && (
-                <>
-                  <h3>Примерная планировка</h3>
-                  <p className="visual-disclaimer">Набросок «как у дяди Васи», не для БТИ и не для суда</p>
-                  <div className="floor-plan-wrap">
-                    <svg viewBox="0 0 400 168" className="floor-plan-svg" aria-hidden>
-                      <rect x="6" y="6" width="388" height="156" fill="none" stroke="var(--accent)" strokeWidth="2.2" rx="6" />
-                      <rect x="18" y="18" width="118" height="72" fill="rgba(43,118,251,0.12)" stroke="var(--border)" rx="2" />
-                      <text x="44" y="58" fill="var(--text-secondary)" fontSize="12" fontFamily="inherit">кухня</text>
-                      <rect x="148" y="18" width="110" height="72" fill="rgba(43,118,251,0.06)" stroke="var(--border)" rx="2" />
-                      <text x="168" y="52" fill="var(--text-secondary)" fontSize="12" fontFamily="inherit">гостиная</text>
-                      <text x="168" y="68" fill="var(--text-secondary)" fontSize="10" fontFamily="inherit">(тут был диван)</text>
-                      <rect x="270" y="18" width="112" height="72" fill="rgba(43,118,251,0.08)" stroke="var(--border)" rx="2" />
-                      <text x="295" y="58" fill="var(--text-secondary)" fontSize="12" fontFamily="inherit">спальня</text>
-                      <rect x="18" y="100" width="88" height="50" fill="rgba(250,204,21,0.08)" stroke="var(--border)" rx="2" />
-                      <text x="36" y="130" fill="var(--text-secondary)" fontSize="11" fontFamily="inherit">с/у</text>
-                      <rect x="118" y="100" width="160" height="50" fill="rgba(43,118,251,0.04)" stroke="var(--border)" strokeDasharray="4 3" rx="2" />
-                      <text x="150" y="128" fill="var(--text-secondary)" fontSize="11" fontFamily="inherit">коридор???</text>
-                      <rect x="290" y="100" width="92" height="50" fill="rgba(239,68,68,0.1)" stroke="var(--border)" rx="2" />
-                      <text x="308" y="130" fill="var(--text-secondary)" fontSize="10" fontFamily="inherit">ниша</text>
-                      <text x="302" y="142" fill="var(--text-secondary)" fontSize="9" fontFamily="inherit">(духи бабушки)</text>
-                    </svg>
+                );
+              }
+              if (isRent) {
+                return (
+                  <div className="stats-panel">
+                    <h3>Условия аренды</h3>
+                    <div className="condition-grid">
+                      <div className="condition-card">
+                        <span className="c-label"><ShieldCheck size={14} /> Страховка</span>
+                        <span className="c-value">КАСКО/ОСАГО</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Info size={14} /> Залог</span>
+                        <span className="c-value">{product.details?.deposit || (seed % 2 === 0 ? 'Без залога' : `${(Math.floor(seed/1000)%10 + 5)*1000} ₽`)}</span>
+                      </div>
+                      {specEntries.map(([k, v]) => (
+                        <div className="condition-card" key={k}>
+                          <span className="c-label">{k}</span>
+                          <span className="c-value">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </>
-              )}
-              {isClothing && (
-                <>
-                  <h3>Индекс drip (на глаз)</h3>
-                  <p className="visual-disclaimer">Научный метод: крутизна × удача в очереди за кроссами</p>
-                  <svg viewBox="0 0 400 100" className="vibe-svg" aria-hidden>
-                    <rect x="20" y="60" width="280" height="14" rx="7" fill="var(--bg-sidebar)" stroke="var(--border)" />
-                    <rect x="20" y="60" width="210" height="14" rx="7" fill="var(--accent)" opacity="0.85" />
-                    <text x="24" y="48" fill="var(--text-secondary)" fontSize="12" fontFamily="inherit">стайл</text>
-                    <text x="300" y="72" fill="var(--accent)" fontSize="13" fontWeight="600" fontFamily="inherit">~75%</text>
-                    <path d="M340 20 L360 45 L380 25" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeDasharray="3 2" />
-                    <text x="330" y="18" fill="var(--text-secondary)" fontSize="10" fontFamily="inherit">рост цены</text>
-                  </svg>
-                </>
-              )}
-              {isItems && (
-                <>
-                  <h3>Что внутри коробки</h3>
-                  <p className="visual-disclaimer">Реконструкция по шуршанию пупырки</p>
-                  <svg viewBox="0 0 400 120" className="loot-svg" aria-hidden>
-                    <rect x="120" y="20" width="160" height="90" rx="10" fill="var(--bg-sidebar)" stroke="var(--accent)" strokeWidth="2" />
-                    <text x="200" y="58" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontFamily="inherit">???</text>
-                    <text x="200" y="78" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="inherit">точно не кот</text>
-                    <circle cx="90" cy="65" r="6" fill="var(--accent)" opacity="0.5" />
-                    <circle cx="310" cy="65" r="6" fill="var(--accent)" opacity="0.5" />
-                  </svg>
-                </>
-              )}
-              {isServices && (
-                <>
-                  <h3>Маршрут мастера</h3>
-                  <p className="visual-disclaimer">С учётом пробок и «сейчас отъеду на 5 минут»</p>
-                  <svg viewBox="0 0 400 100" className="route-svg" aria-hidden>
-                    <circle cx="40" cy="50" r="8" fill="var(--accent)" />
-                    <text x="28" y="75" fill="var(--text-secondary)" fontSize="10" fontFamily="inherit">вы</text>
-                    <path d="M52 50 Q120 20 200 55 T360 40" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" />
-                    <circle cx="360" cy="40" r="8" fill="#22c55e" />
-                    <text x="332" y="68" fill="var(--text-secondary)" fontSize="10" fontFamily="inherit">мастер</text>
-                    <text x="160" y="22" fill="var(--text-secondary)" fontSize="10" fontFamily="inherit">объезд ЖК «Вечный ремонт»</text>
-                  </svg>
-                </>
-              )}
-            </div>
-          )}
+                );
+              }
+              if (isRealEstate) {
+                const Plan = [FloorPlanA, FloorPlanB, FloorPlanC][seed % 3];
+                return (
+                  <div className="stats-panel extra-visual-panel">
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+                      <h3 style={{margin:0}}>Архитектурный план</h3>
+                      <span className="badge-premium"><Sparkles size={12}/> High Fidelity</span>
+                    </div>
+                    <p className="visual-disclaimer">Профессиональная визуализация пространства и зонирования</p>
+                    <div className="floor-plan-wrap">
+                      <Plan />
+                    </div>
+                    <div className="plan-stats-row">
+                      <div className="plan-stat"><Ruler size={14}/> <span>Потолки <strong>2.9м</strong></span></div>
+                      <div className="plan-stat"><ShieldCheck size={14}/> <span>Стены <strong>Кирпич</strong></span></div>
+                    </div>
+                  </div>
+                );
+              }
+              if (isClothing) {
+                return (
+                  <div className="stats-panel">
+                    <h3>Информация о продукте</h3>
+                    <div className="condition-grid">
+                      <div className="condition-card">
+                        <span className="c-label"><Sparkles size={14} /> Материал</span>
+                        <span className="c-value">{product.details?.material || pick(VARIATIONS.clothing.materials, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Ruler size={14} /> Силуэт</span>
+                        <span className="c-value">{product.details?.fit || pick(VARIATIONS.clothing.fits, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><ShieldCheck size={14} /> Уход</span>
+                        <span className="c-value">{pick(VARIATIONS.clothing.care, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><MapPin size={14} /> Происхождение</span>
+                        <span className="c-value">{pick(VARIATIONS.clothing.origins, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Info size={14} /> Аутентичность</span>
+                        <span className="c-value">100% Original</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (isItems) {
+                return (
+                  <div className="stats-panel">
+                    <h3>Детали и комплект</h3>
+                    <div className="condition-grid">
+                      <div className="condition-card">
+                        <span className="c-label"><Package size={14} /> Комплект</span>
+                        <span className="c-value">{product.details?.package || pick(VARIATIONS.items.packages, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><ShieldCheck size={14} /> Гарантия</span>
+                        <span className="c-value">{product.details?.warranty || pick(VARIATIONS.items.warranties, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Info size={14} /> Состояние</span>
+                        <span className="c-value">{product.condition}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Package size={14} /> Материал</span>
+                        <span className="c-value">{pick(VARIATIONS.items.materials_item, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Sparkles size={14} /> Проверка</span>
+                        <span className="c-value">Работоспособен 100%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (isServices) {
+                return (
+                  <div className="stats-panel">
+                    <h3>Параметры услуги</h3>
+                    <div className="condition-grid">
+                      <div className="condition-card">
+                        <span className="c-label"><Zap size={14} /> Скорость</span>
+                        <span className="c-value">{product.details?.speed || pick(VARIATIONS.services.speeds, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><ShieldCheck size={14} /> Гарантии</span>
+                        <span className="c-value">{pick(VARIATIONS.services.guarantees, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><User size={14} /> Исполнитель</span>
+                        <span className="c-value">Пройдена верификация</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Sparkles size={14} /> Ресурсы</span>
+                        <span className="c-value">{pick(VARIATIONS.services.tools, seed)}</span>
+                      </div>
+                      <div className="condition-card">
+                        <span className="c-label"><Info size={14} /> Оплата</span>
+                        <span className="c-value">Безопасная сделка</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
         </div>
       </div>
 

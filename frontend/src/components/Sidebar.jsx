@@ -1,6 +1,5 @@
 import { NavLink, Link, useSearchParams } from 'react-router-dom';
 import { LayoutGrid, Gavel, Car, Home, Box, Shirt, Briefcase, KeyRound, Heart, Package, Clock, User, LogOut, Shield } from 'lucide-react';
-import { isAdmin } from '../api';
 import './Sidebar.css';
 
 const categories = [
@@ -12,7 +11,7 @@ const categories = [
   { id: 'rent', name: 'Аренда транспорта', icon: <KeyRound size={18} /> }
 ];
 
-export default function Sidebar({ onOpenAuth }) {
+export default function Sidebar({ onOpenAuth, isAdminUser }) {
   const [searchParams] = useSearchParams();
   const activeCategory = searchParams.get('category') || '';
   const auctionNav = searchParams.get('auction') === '1';
@@ -65,7 +64,7 @@ export default function Sidebar({ onOpenAuth }) {
           <Clock size={18} />
           <span>История покупок</span>
         </NavLink>
-        {isAdmin() && (
+        {isAdminUser && (
           <NavLink to="/admin" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <Shield size={18} />
             <span>Админка</span>

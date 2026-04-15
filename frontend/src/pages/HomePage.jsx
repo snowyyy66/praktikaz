@@ -94,6 +94,11 @@ export default function HomePage() {
     return category ? names[category] || 'Объявления' : 'Все объявления';
   };
 
+  const imgUrl = (src) => {
+    if (!src) return '';
+    return src.startsWith('http') ? src : `http://localhost:3000${src}`;
+  };
+
   return (
     <div className="home-page animate-fade-in">
       <div className="page-toolbar">
@@ -139,7 +144,7 @@ export default function HomePage() {
             <NavLink to={`/product/${product.id}`} key={product.id} className="product-card">
               <div className="card-image">
                 {product.images?.[0]
-                  ? <img src={product.images[0]} alt={product.title} className="card-img" loading="lazy" />
+                  ? <img src={imgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
                   : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase() || 'ФТ'}</div>
                 }
                 <div className="card-badges">

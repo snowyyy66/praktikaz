@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
@@ -13,22 +13,39 @@ import CreateProductPage from './pages/CreateProductPage';
 import MessagesPage from './pages/MessagesPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AdminPage from './pages/AdminPage';
+import { isAdmin as checkIsAdmin } from './api';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    if (userId) setIsAuthenticated(true);
+    if (userId) {
+      setIsAuthenticated(true);
+      setIsAdmin(checkIsAdmin());
+    }
   }, []);
 
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    setIsAdmin(checkIsAdmin());
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userId');
+    localStorage.removeItem('isAdmin');
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+  };
+
   if (!isAuthenticated) {
-    return <AuthPage onLogin={() => setIsAuthenticated(true)} />;
+    return <AuthPage onLogin={handleLogin} />;
   }
 
   return (
     <div className="app-container">
-      <Sidebar onOpenAuth={() => setIsAuthenticated(false)} />
+      <Sidebar onOpenAuth={handleLogout} isAdminUser={isAdmin} />
       <main className="main-content">
         <Header />
         <div className="page-content">
@@ -43,7 +60,7 @@ function App() {
             <Route path="/create" element={<CreateProductPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin" element={isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
           </Routes>
         </div>
       </main>
