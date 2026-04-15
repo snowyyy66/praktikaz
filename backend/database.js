@@ -84,6 +84,14 @@ export async function initDatabase() {
     )
   `);
   try { db.run('ALTER TABLE orders ADD COLUMN rent_hours INTEGER'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN appointment_date TEXT'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN appointment_time TEXT'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN address_street TEXT'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN address_house TEXT'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN house_type TEXT'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN address_entrance TEXT'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN address_floor TEXT'); } catch (_) {}
+  try { db.run('ALTER TABLE orders ADD COLUMN address_apartment TEXT'); } catch (_) {}
 
   // Migration: add images column if missing
   try { db.run("ALTER TABLE products ADD COLUMN images TEXT DEFAULT '[]'"); } catch (_) {}

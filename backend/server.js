@@ -151,7 +151,6 @@ app.get('/api/products/:id', (req, res) => {
 
   if (!product) return res.status(404).json({ error: 'Not found' });
 
-  runSql('UPDATE products SET views = views + 1 WHERE id = ?', [parseInt(req.params.id)]);
   product.details = JSON.parse(product.details || '{}');
   product.images = JSON.parse(product.images || '[]');
 
@@ -175,6 +174,14 @@ app.get('/api/products/:id', (req, res) => {
   }
 
   res.json(product);
+});
+
+/** POST /api/products/:id/views — инкремент просмотров */
+app.post('/api/products/:id/views', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid ID' });
+  runSql('UPDATE products SET views = views + 1 WHERE id = ?', [id]);
+  res.json({ success: true });
 });
 
 /** POST /api/products — создать объявление (фикс или аукцион с датой окончания и шагом) */
@@ -561,17 +568,37 @@ app.get('/api/search', (req, res) => {
   res.json(products.map(p => ({ ...p, details: JSON.parse(p.details || '{}') })));
 });
 
-/** POST /api/orders — оформить заказ (аренда: rent_hours и сумма за часы; аукцион: только победитель после окончания) */
+/** POST /api/orders — оформить заказ (аренда: rent_hours; услуги: дата/время/адрес; товары: адрес) */
 app.post('/api/orders', (req, res) => {
-  const { buyer_id, product_id, rent_hours } = req.body;
+  const { 
+    buyer_id, product_id, rent_hours, 
+    appointment_date, appointment_time,
+    address_street, address_house, house_type, 
+    address_entrance, address_floor, address_apartment 
+  } = req.body;
+
   const buyerId = toInt(buyer_id);
   const productId = toInt(product_id);
   if (!Number.isFinite(buyerId) || !Number.isFinite(productId)) {
-    return res.status(400).json({ error: 'Некорректные buyer_id или product_id' });
+    return res.status(400).json({ error: 'Некорректные параметры заказа' });
   }
+
   const product = queryOne('SELECT * FROM products WHERE id = ? AND is_active = 1', [productId]);
   if (!product) return res.status(404).json({ error: 'Товар не найден' });
   if (toInt(product.seller_id) === buyerId) return res.status(400).json({ error: 'Нельзя купить собственный товар' });
+
+  // Concurrency check for services
+  if (product.category_id === 'services' && appointment_date && appointment_time) {
+    const existing = queryOne(`
+      SELECT COUNT(*) as count 
+      FROM orders 
+      WHERE product_id = ? AND appointment_date = ? AND appointment_time = ?
+    `, [productId, appointment_date, appointment_time]);
+    
+    if (existing && existing.count >= 3) {
+      return res.status(400).json({ error: 'Это время уже полностью забронировано (макс. 3 мастера)' });
+    }
+  }
 
   let total = product.price;
   let rentHoursSaved = null;
@@ -581,48 +608,82 @@ app.post('/api/orders', (req, res) => {
     const minH = Math.max(1, parseInt(d.min_hours, 10) || 1);
     const maxH = Math.max(minH, parseInt(d.max_hours, 10) || 168);
     const hrs = parseInt(rent_hours, 10);
-    if (!Number.isFinite(hrs)) {
-      return res.status(400).json({ error: 'Укажите срок аренды в часах' });
-    }
-    if (hrs < minH || hrs > maxH) {
-      return res.status(400).json({ error: `Можно выбрать от ${minH} до ${maxH} часов` });
-    }
-    const perHour = parseInt(product.price, 10) || 0;
-    if (perHour < 1) return res.status(400).json({ error: 'Некорректная цена за час' });
-    total = perHour * hrs;
+    if (!Number.isFinite(hrs)) return res.status(400).json({ error: 'Укажите срок аренды' });
+    if (hrs < minH || hrs > maxH) return res.status(400).json({ error: `Срок аренды: от ${minH} до ${maxH} ч.` });
+    total = parseInt(product.price, 10) * hrs;
     rentHoursSaved = hrs;
   }
 
   if ((product.sale_type || 'fixed') === 'auction') {
-    if (isAuctionLive(product)) {
-      return res.status(400).json({ error: 'Дождитесь окончания торгов. Победитель оформит покупку по своей ставке.' });
-    }
     const high = getAuctionHigh(productId);
-    if (!high) return res.status(400).json({ error: 'Не было ставок — лот нельзя оформить как покупку' });
     const leader = getAuctionLeader(productId, high);
-    if (!leader || toInt(leader.bidder_id) !== buyerId) {
-      return res.status(403).json({ error: 'Оформить по итогам аукциона может только победитель' });
-    }
+    if (!leader || toInt(leader.bidder_id) !== buyerId) return res.status(403).json({ error: 'Только победитель может оформить заказ' });
     total = high;
   }
 
   try {
-    runSql(`INSERT INTO orders (buyer_id, seller_id, product_id, total, status, rent_hours) VALUES (?, ?, ?, ?, 'completed', ?)`,
-      [buyerId, product.seller_id, productId, total, rentHoursSaved]);
-    if (product.category_id !== 'rent') {
+    const statusVal = 'completed';
+    runSql(`
+      INSERT INTO orders (
+        buyer_id, seller_id, product_id, total, status, rent_hours,
+        appointment_date, appointment_time, address_street, address_house, 
+        house_type, address_entrance, address_floor, address_apartment
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      buyerId, 
+      toInt(product.seller_id), 
+      productId, 
+      Math.floor(total), 
+      statusVal,
+      rentHoursSaved,
+      appointment_date || null,
+      appointment_time || null,
+      address_street || '',
+      address_house || '',
+      house_type || 'apartment',
+      address_entrance || '',
+      address_floor || '',
+      address_apartment || ''
+    ]);
+
+    // Services stay active, others go inactive
+    if (product.category_id !== 'rent' && product.category_id !== 'services') {
       runSql('UPDATE products SET is_active = 0 WHERE id = ?', [productId]);
     }
+
     runSql('UPDATE users SET total_sales = total_sales + 1, total_earnings = total_earnings + ? WHERE id = ?',
-      [total, product.seller_id]);
+      [Math.floor(total), toInt(product.seller_id)]);
+
     const saleText = product.category_id === 'rent'
       ? `Аренда «${product.title}»: ${rentHoursSaved} ч. — ${total.toLocaleString('ru-RU')} ₽`
-      : `Ваш товар "${product.title}" куплен за ${total.toLocaleString('ru-RU')} ₽`;
+      : `Новый заказ на "${product.title}" (${total.toLocaleString('ru-RU')} ₽)`;
+
     runSql('INSERT INTO notifications (user_id, type, text) VALUES (?, ?, ?)',
-      [product.seller_id, 'sale', saleText]);
+      [toInt(product.seller_id), 'sale', saleText]);
+
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Order Error:', err);
+    res.status(500).json({ error: 'Ошибка базы данных при оформлении: ' + err.message });
   }
+});
+
+/** GET /api/products/:id/availability?date=... — получить занятые слоты */
+app.get('/api/products/:id/availability', (req, res) => {
+  const productId = parseInt(req.params.id);
+  const { date } = req.query;
+  if (!date) return res.status(400).json({ error: 'Укажите дату' });
+
+  const orders = queryAll(`
+    SELECT appointment_time, COUNT(*) as count 
+    FROM orders 
+    WHERE product_id = ? AND appointment_date = ?
+    GROUP BY appointment_time
+  `, [productId, date]);
+
+  // Return slots that are full (count >= 3)
+  const fullSlots = orders.filter(o => o.count >= 3).map(o => o.appointment_time);
+  res.json({ full_slots: fullSlots });
 });
 
 /** GET /api/users/:id/orders — заказы, где пользователь покупатель или продавец */

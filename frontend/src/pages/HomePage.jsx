@@ -27,7 +27,7 @@ export default function HomePage() {
   const auctionOnly = searchParams.get('auction') === '1';
 
   const fetchProducts = useCallback(async (targetPage, append) => {
-    const params = { sort, page: targetPage, limit: 24 };
+    const params = { sort, page: targetPage, limit: 100 };
     if (category) params.category = category;
     if (search) params.search = search;
     if (auctionOnly) params.auction = '1';

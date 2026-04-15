@@ -1,216 +1,299 @@
 .product-card-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  transition: transform 0.2s ease;
+}
+
+.product-card-wrapper:hover {
+  transform: translateY(-4px);
 }
 
 .product-card-wrapper .product-card {
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
 }
 
 .product-actions {
   display: flex;
-  gap: 6px;
-  padding: 6px 10px 10px;
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-top: none;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .btn-edit {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 8px;
   flex: 1;
-  padding: 6px 10px;
-  font-size: 12px;
-  background: rgba(124, 58, 237, 0.18);
-  border: none;
-  border-radius: 6px;
+  padding: 10px;
+  font-size: 13px;
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  color: #a78bfa;
-  transition: background 0.15s;
+  color: var(--accent);
+  transition: all 0.2s ease;
   font-weight: 600;
 }
 
 .btn-edit:hover {
-  background: rgba(124, 58, 237, 0.28);
-  color: #c4b5fd;
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 4px 12px rgba(43, 118, 251, 0.2);
 }
 
 .btn-delete {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 10px;
-  background: var(--bg-secondary, #f3f4f6);
-  border: none;
-  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  background: rgba(220, 47, 2, 0.08);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  color: var(--text-secondary, #6b7280);
-  transition: background 0.15s, color 0.15s;
+  color: var(--danger);
+  transition: all 0.2s ease;
 }
 
 .btn-delete:hover {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 47, 2, 0.2);
 }
 
 /* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 3000;
-  padding: 16px;
+  padding: 20px;
 }
 
 .modal-box {
   position: relative;
-  z-index: 3001;
-  background: var(--bg-card, #171a21);
-  border: 1px solid var(--border, #2a2f3a);
-  border-radius: 16px;
-  padding: 24px;
+  background: var(--bg-content);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 32px;
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6);
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 28px;
 }
 
 .modal-header h3 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .modal-close {
-  background: none;
-  border: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   cursor: pointer;
-  color: var(--text-secondary, #6b7280);
-  padding: 4px;
-  border-radius: 6px;
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.modal-close:hover { background: var(--bg-secondary, #f3f4f6); }
+.modal-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  transform: rotate(90deg);
+}
 
 .edit-form .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 
 .edit-form .form-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 4px;
-  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
 }
 
 .edit-form .form-group input,
 .edit-form .form-group select,
 .edit-form .form-group textarea {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
-  font-size: 14px;
-  background: var(--bg-primary, #fff);
-  color: #111;
-  caret-color: #111;
-  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
 }
 
-.edit-form .form-group input::placeholder,
-.edit-form .form-group textarea::placeholder {
-  color: #6b7280;
+.edit-form .form-group input:focus,
+.edit-form .form-group select:focus,
+.edit-form .form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  box-shadow: 0 0 0 4px rgba(43, 118, 251, 0.1);
+}
+
+/* Custom File Input Styling */
+.file-input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-upload-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg-app);
+}
+
+.file-upload-trigger:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .edit-form .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
 }
 
-.edit-form textarea { resize: vertical; }
+.edit-form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
 
 .modal-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
 }
 
 .btn-cancel {
-  padding: 8px 16px;
-  background: var(--bg-secondary, #f3f4f6);
-  border: none;
-  border-radius: 8px;
+  padding: 12px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: var(--bg-card-hover);
 }
 
 .btn-save {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  background: var(--primary, #7c3aed);
-  color: #fff;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--accent);
+  color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
 
-.btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-save:hover:not(:disabled) { background: var(--primary-hover, #6d28d9); }
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 8px 24px rgba(43, 118, 251, 0.3);
+  transform: translateY(-2px);
+}
 
 .edit-photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
 }
 
 .edit-photo-item {
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-app);
+  aspect-ratio: 1;
 }
 
 .edit-photo-item img {
   width: 100%;
-  height: 70px;
+  height: 100%;
   object-fit: cover;
-  display: block;
+  transition: transform 0.3s ease;
+}
+
+.edit-photo-item:hover img {
+  transform: scale(1.1);
 }
 
 .edit-photo-remove {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   width: 100%;
   border: none;
-  border-top: 1px solid var(--border-color, #e5e7eb);
-  background: transparent;
-  color: #f87171;
+  background: rgba(220, 47, 2, 0.9);
+  color: white;
   font-size: 11px;
-  padding: 6px 4px;
+  font-weight: 700;
+  padding: 6px;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 .edit-photo-remove:hover {
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--danger);
 }
