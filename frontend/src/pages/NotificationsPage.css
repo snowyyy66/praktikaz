@@ -1,3 +1,4 @@
+﻿/* Стили списка уведомлений и их статусов. */
 .notifications-page {
   max-width: 680px;
 }
@@ -86,3 +87,4 @@
   flex-shrink: 0;
   margin-top: 6px;
 }
+

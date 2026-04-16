@@ -1,3 +1,4 @@
+﻿// Отображает историю покупок и продаж пользователя.
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownLeft, Package } from 'lucide-react';
 import { api, getUserId } from '../api';
@@ -63,3 +64,4 @@ export default function OrdersPage() {
     </div>
   );
 }
+

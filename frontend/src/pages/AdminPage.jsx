@@ -1,3 +1,4 @@
+﻿// Страница админки для управления всеми объявлениями.
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Eye, Pencil, Trash2, X, Check } from 'lucide-react';
@@ -220,3 +221,4 @@ export default function AdminPage() {
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+﻿/* Стили верхней панели с поиском и кнопками действий. */
 .header-left {
   display: flex;
   gap: 16px;
@@ -125,3 +126,4 @@
   color: var(--text-secondary);
   border: 2px solid var(--border);
 }
+

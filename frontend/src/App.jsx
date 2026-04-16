@@ -1,3 +1,4 @@
+﻿// Определяет каркас приложения и маршруты страниц.
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -69,3 +70,4 @@ function App() {
 }
 
 export default App;
+

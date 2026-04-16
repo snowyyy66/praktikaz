@@ -1,3 +1,4 @@
+﻿/* Базовые стили заглушек для вспомогательных страниц. */
 .mock-page {
   display: flex;
   align-items: center;
@@ -39,3 +40,4 @@
   margin-top: 12px;
   opacity: 0.7;
 }
+

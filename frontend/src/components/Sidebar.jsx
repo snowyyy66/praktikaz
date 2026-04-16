@@ -1,3 +1,4 @@
+﻿// Рендерит боковую навигацию по разделам маркетплейса.
 import { NavLink, Link, useSearchParams } from 'react-router-dom';
 import { LayoutGrid, Gavel, Car, Home, Box, Shirt, Briefcase, KeyRound, Heart, Package, Clock, User, LogOut, Shield } from 'lucide-react';
 import './Sidebar.css';
@@ -85,3 +86,4 @@ export default function Sidebar({ onOpenAuth, isAdminUser }) {
     </aside>
   );
 }
+

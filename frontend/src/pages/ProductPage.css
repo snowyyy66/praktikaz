@@ -1,3 +1,4 @@
+﻿/* Стили карточки товара, покупки, ставок и отзывов. */
 .btn-back {
   display: inline-flex;
   align-items: center;
@@ -189,7 +190,7 @@
   white-space: nowrap;
 }
 
-/* Seller Card */
+/* Карточка продавца */
 .seller-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -304,7 +305,7 @@
 }
 .seller-stat strong { color: #fff; }
 
-/* Stats panel */
+/* Панель характеристик */
 .stats-panel {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -508,7 +509,7 @@
   font-size: 16px;
 }
 
-/* Reviews */
+/* Блок отзывов */
 .reviews-section {
   margin-top: 40px;
   padding-top: 32px;
@@ -604,7 +605,7 @@
 .btn-submit-review:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-submit-review:disabled { opacity: 0.6; cursor: not-allowed; }
 .review-thanks { color: #16a34a; font-size: 14px; font-weight: 500; margin-top: 8px; }
-/* Buy Modal - Premium Redesign */
+/* Модалка покупки — обновлённый премиум-стиль */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -897,3 +898,4 @@
 }
 .btn-confirm-buy:active { transform: translateY(0); }
 .btn-confirm-buy:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+

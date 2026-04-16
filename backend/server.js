@@ -1,3 +1,4 @@
+﻿// Поднимает API-сервер и обрабатывает маршруты маркетплейса.
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
@@ -436,7 +437,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   const isValid = user.password.startsWith('$2')
     ? await bcrypt.compare(password, user.password)
-    : user.password === password; // fallback for existing seed users
+    : user.password === password; // Резерв для старых seed-пользователей без bcrypt-хеша.
 
   if (!isValid) return res.status(401).json({ error: 'Неверная почта или пароль' });
   res.json({ success: true, user_id: user.id, is_admin: !!user.is_admin });
@@ -587,7 +588,7 @@ app.post('/api/orders', (req, res) => {
   if (!product) return res.status(404).json({ error: 'Товар не найден' });
   if (toInt(product.seller_id) === buyerId) return res.status(400).json({ error: 'Нельзя купить собственный товар' });
 
-  // Concurrency check for services
+  // Для услуг ограничиваем число одновременных записей в один слот времени.
   if (product.category_id === 'services' && appointment_date && appointment_time) {
     const existing = queryOne(`
       SELECT COUNT(*) as count 
@@ -646,7 +647,7 @@ app.post('/api/orders', (req, res) => {
       address_apartment || ''
     ]);
 
-    // Services stay active, others go inactive
+    // Услуги и аренда остаются активными, остальные объявления закрываем после покупки.
     if (product.category_id !== 'rent' && product.category_id !== 'services') {
       runSql('UPDATE products SET is_active = 0 WHERE id = ?', [productId]);
     }
@@ -681,7 +682,7 @@ app.get('/api/products/:id/availability', (req, res) => {
     GROUP BY appointment_time
   `, [productId, date]);
 
-  // Return slots that are full (count >= 3)
+  // Возвращаем только полностью занятые слоты (3 записи и более).
   const fullSlots = orders.filter(o => o.count >= 3).map(o => o.appointment_time);
   res.json({ full_slots: fullSlots });
 });
@@ -867,3 +868,4 @@ initDatabase().then(() => {
   console.error('❌ Failed to init database:', err);
   process.exit(1);
 });
+

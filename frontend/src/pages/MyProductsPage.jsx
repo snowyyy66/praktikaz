@@ -1,3 +1,4 @@
+﻿// Управление собственными объявлениями пользователя.
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Eye, Heart, Pencil, Trash2, X, Check, Upload } from 'lucide-react';
@@ -239,3 +240,4 @@ export default function MyProductsPage() {
     </div>
   );
 }
+

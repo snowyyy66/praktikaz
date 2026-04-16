@@ -1,3 +1,4 @@
+﻿// Страница входа и регистрации пользователей.
 import { useState } from 'react';
 import { Mail, Lock, User as UserIcon } from 'lucide-react';
 import { api } from '../api';
@@ -89,3 +90,4 @@ export default function AuthPage({ onLogin }) {
     </div>
   );
 }
+

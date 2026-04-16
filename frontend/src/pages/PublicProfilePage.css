@@ -1,3 +1,4 @@
+﻿/* Стили публичного профиля продавца и его контента. */
 .public-profile-page {
   max-width: 1000px;
   margin: 0 auto;
@@ -161,7 +162,7 @@
   text-align: center;
 }
 
-/* Products Grid in Profile */
+/* Сетка объявлений в профиле */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -244,7 +245,7 @@
   margin: 0;
 }
 
-/* Reviews List */
+/* Список отзывов */
 .reviews-list {
   display: flex;
   flex-direction: column;
@@ -313,3 +314,4 @@
     justify-content: center;
   }
 }
+

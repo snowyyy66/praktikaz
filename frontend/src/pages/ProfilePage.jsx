@@ -1,3 +1,4 @@
+﻿// Страница профиля пользователя со статистикой и товарами.
 import { useState, useEffect } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { User, Star, MapPin, Phone, Mail, Package, Eye, Heart, TrendingUp, ShoppingCart, Calendar, Edit3, Camera } from 'lucide-react';
@@ -104,7 +105,7 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page animate-fade-in">
-      {/* Profile Header */}
+      {/* Шапка профиля */}
       <div className="profile-header">
         <div className="profile-avatar">
           {user.avatar ? (
@@ -171,7 +172,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Stats Grid */}
+      {/* Блок статистики */}
       {stats && (
         <div className="stats-grid">
           <div className="stat-card">
@@ -219,7 +220,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* My Products */}
+      {/* Блок объявлений пользователя */}
       <div className="profile-section">
         <div className="section-header">
           <h2>{isOwnProfile ? 'Мои объявления' : `Объявления продавца ${user?.username || ''}`}</h2>
@@ -250,3 +251,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

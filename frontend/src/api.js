@@ -1,11 +1,14 @@
+﻿// Содержит клиент API и хелперы для запросов к бэкенду.
 const API_BASE = 'http://localhost:3000/api';
 
 /** HTTP-запрос к API: парсит JSON, при ошибке кидает Error с текстом сервера */
 export async function fetchApi(endpoint, options = {}) {
+  // Единая точка запросов: так проще централизованно менять базовый URL и обработку ошибок.
   const res = await fetch(`${API_BASE}${endpoint}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
+  // Даже если ответ не JSON, не даем упасть интерфейсу и подставляем пустой объект.
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
   return data;
@@ -17,6 +20,7 @@ export const getUserId = () => {
   if (sessionStorage.getItem('userIdOverride') != null) {
     sessionStorage.removeItem('userIdOverride');
   }
+  // Основной источник авторизации в текущем проекте — localStorage.
   return localStorage.getItem('userId') || null;
 };
 
@@ -25,6 +29,7 @@ export const isAdmin = () => localStorage.getItem('isAdmin') === '1';
 export const api = {
   /** Вход: проверяет почту/пароль, пишет userId в localStorage */
   login: async (credentials) => {
+    // Бэкенд возвращает user_id и роль, которые сохраняем для роутинга и прав доступа.
     const res = await fetchApi('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials)
@@ -38,6 +43,7 @@ export const api = {
 
   /** Регистрация: создаёт пользователя, пишет userId в localStorage */
   register: async (data) => {
+    // После регистрации сразу логиним пользователя на клиенте тем же способом.
     const res = await fetchApi('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data)
@@ -64,8 +70,10 @@ export const api = {
 
   /** Список объявлений (фильтры: category, search, sort, auction, user_id для избранного) */
   getProducts: (params = {}) => {
+    // Превращаем объект фильтров в query-string для GET /products.
     const qs = new URLSearchParams(params).toString();
     return fetchApi(`/products${qs ? '?' + qs : ''}`).then((data) => {
+      // Поддержка старого формата ответа (массив), чтобы не ломать старые экраны.
       if (Array.isArray(data)) {
         return { items: data, page: 1, limit: data.length, has_more: false };
       }
@@ -99,6 +107,7 @@ export const api = {
   /** Загрузить фото объявления (multipart) */
   uploadProductImages: async (productId, sellerId, files, actorId = getUserId()) => {
     const fd = new FormData();
+    // Отправляем каждую картинку как отдельное поле images в multipart-запросе.
     for (const f of files) fd.append('images', f);
     fd.append('seller_id', sellerId);
     fd.append('actor_id', actorId);
@@ -157,6 +166,7 @@ export const api = {
   /** Загрузить аватар (multipart, не через fetchApi) */
   uploadAvatar: (userId, file) => {
     const fd = new FormData();
+    // Для файлов нельзя ставить JSON Content-Type — браузер сам проставит boundary.
     fd.append('avatar', file);
     return fetch(`http://localhost:3000/api/users/${userId}/avatar`, { method: 'POST', body: fd })
       .then(async (r) => {
@@ -191,3 +201,4 @@ export const api = {
   /** Пометить все уведомления прочитанными */
   markAllNotificationsRead: (userId) => fetchApi(`/users/${userId}/notifications/read-all`, { method: 'PUT' }),
 };
+

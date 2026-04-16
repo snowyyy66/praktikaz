@@ -1,3 +1,4 @@
+﻿// Показывает уведомления и управление их прочтением.
 import { useState, useEffect } from 'react';
 import { Bell, CheckCheck } from 'lucide-react';
 import { api, getUserId } from '../api';
@@ -71,3 +72,4 @@ export default function NotificationsPage() {
     </div>
   );
 }
+

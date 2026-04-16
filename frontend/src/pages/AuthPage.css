@@ -1,3 +1,4 @@
+﻿/* Стили страницы авторизации и регистрации. */
 .auth-page {
   display: flex;
   align-items: center;
@@ -132,3 +133,4 @@
   text-decoration: underline;
   color: var(--accent-hover);
 }
+

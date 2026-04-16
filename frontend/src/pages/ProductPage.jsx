@@ -1,3 +1,4 @@
+﻿// Карточка товара с покупкой, ставками и отзывами.
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles, X } from 'lucide-react';
@@ -107,21 +108,21 @@ const FloorPlanA = () => (
         <stop offset="100%" stopColor="rgba(43,118,251,0.02)" />
       </linearGradient>
     </defs>
-    {/* Exterior Walls */}
+    {/* Внешние стены */}
     <rect x="20" y="20" width="360" height="200" fill="none" stroke="var(--text-secondary)" strokeWidth="3" rx="4" />
-    {/* Kitchen + Living */}
+    {/* Кухня и гостиная */}
     <rect x="20" y="20" width="220" height="120" fill="url(#g-room)" stroke="var(--border)" strokeWidth="1" />
     <text x="130" y="80" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Кухня-гостиная</text>
     <text x="130" y="100" textAnchor="middle" fill="var(--text-secondary)" fontSize="10">24.5 м²</text>
-    {/* Bedroom */}
+    {/* Спальня */}
     <rect x="240" y="20" width="140" height="120" fill="rgba(250,204,21,0.04)" stroke="var(--border)" strokeWidth="1" />
     <text x="310" y="70" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Спальня</text>
-    <path d="M280 40 H340 V90 H280 Z" fill="rgba(255,255,255,0.05)" stroke="var(--border)" /> {/* Bed */}
-    {/* Bathroom */}
+    <path d="M280 40 H340 V90 H280 Z" fill="rgba(255,255,255,0.05)" stroke="var(--border)" /> {/* Кровать */}
+    {/* Ванная */}
     <rect x="20" y="140" width="100" height="80" fill="rgba(34,197,94,0.04)" stroke="var(--border)" strokeWidth="1" />
     <text x="70" y="185" textAnchor="middle" fill="var(--text-primary)" fontSize="12">Ванная</text>
-    <circle cx="45" cy="165" r="12" fill="none" stroke="var(--border)" /> {/* Sink */}
-    {/* Corridor */}
+    <circle cx="45" cy="165" r="12" fill="none" stroke="var(--border)" /> {/* Раковина */}
+    {/* Коридор */}
     <rect x="120" y="140" width="260" height="80" fill="none" stroke="var(--border)" strokeDasharray="4 2" />
     <text x="250" y="185" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">Прихожая/Гардероб</text>
   </svg>
@@ -129,15 +130,15 @@ const FloorPlanA = () => (
 
 const FloorPlanB = () => (
   <svg viewBox="0 0 400 240" className="floor-plan-svg" aria-hidden>
-    {/* Studio Layout */}
+    {/* Планировка студии */}
     <rect x="40" y="20" width="320" height="200" fill="none" stroke="var(--text-secondary)" strokeWidth="4" rx="10" />
     <rect x="40" y="20" width="320" height="150" fill="rgba(43,118,251,0.05)" stroke="var(--border)" />
-    <text x="200" y="90" textAnchor="middle" fill="var(--text-primary)" fontSize="16" fontWeight="700">Open Space Studio</text>
+    <text x="200" y="90" textAnchor="middle" fill="var(--text-primary)" fontSize="16" fontWeight="700">Студия open space</text>
     <text x="200" y="115" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">32.8 м²</text>
-    {/* Furniture icons */}
-    <rect x="60" y="40" width="60" height="80" fill="rgba(255,255,255,0.03)" stroke="var(--border)" rx="2" /> {/* Library */}
-    <rect x="300" y="40" width="40" height="40" fill="rgba(255,255,255,0.03)" stroke="var(--border)" rx="20" /> {/* Table */}
-    {/* Entrance + Bath */}
+    {/* Схематичные иконки мебели */}
+    <rect x="60" y="40" width="60" height="80" fill="rgba(255,255,255,0.03)" stroke="var(--border)" rx="2" /> {/* Шкаф */}
+    <rect x="300" y="40" width="40" height="40" fill="rgba(255,255,255,0.03)" stroke="var(--border)" rx="20" /> {/* Стол */}
+    {/* Вход и санузел */}
     <rect x="40" y="170" width="120" height="50" fill="rgba(239,68,68,0.04)" stroke="var(--border)" />
     <text x="100" y="200" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">Санузел</text>
     <path d="M260 170 V220 M260 195 H360" stroke="var(--border)" strokeWidth="1" />
@@ -147,7 +148,7 @@ const FloorPlanB = () => (
 
 const FloorPlanC = () => (
   <svg viewBox="0 0 400 240" className="floor-plan-svg" aria-hidden>
-    {/* Corner Apartment */}
+    {/* Угловая квартира */}
     <path d="M40 40 H360 V180 H200 V220 H40 Z" fill="none" stroke="var(--text-secondary)" strokeWidth="3" />
     <rect x="40" y="40" width="160" height="140" fill="rgba(168,85,247,0.05)" stroke="var(--border)" />
     <text x="120" y="110" textAnchor="middle" fill="var(--text-primary)" fontSize="14" fontWeight="600">Мастер-спальня</text>
@@ -197,7 +198,7 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!id) return;
-    // Guard against double increment in React Strict Mode (dev) on the same mount
+    // Защита от двойного инкремента просмотров в React Strict Mode (dev).
     if (!viewIncremented.current) {
       api.incrementProductViews(id).catch(err => console.error('Failed to increment views:', err));
       viewIncremented.current = true;
@@ -332,7 +333,7 @@ export default function ProductPage() {
       
       await api.createOrder(getUserId(), product.id, payload);
       setBought(true);
-      // We don't close modal immediately, we show success inside it
+      // Модалку сразу не закрываем: показываем внутри состояние успешной покупки.
     } catch (err) {
       setBuyError(err.message || 'Ошибка при оформлении заказа');
     } finally {
@@ -820,7 +821,7 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* Reviews section */}
+      {/* Секция отзывов */}
       <div className="reviews-section">
         <h2 className="reviews-title">Отзывы {reviews.length > 0 && <span className="reviews-count">({reviews.length})</span>}</h2>
 
@@ -865,7 +866,7 @@ export default function ProductPage() {
         )}
         {reviewSubmitted && <p className="review-thanks">Спасибо за ваш отзыв!</p>}
       </div>
-      {/* Buy Modal */}
+      {/* Модальное окно оформления заказа */}
       {showBuyModal && (
         <div className="modal-overlay" onClick={() => setShowBuyModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -1013,3 +1014,4 @@ export default function ProductPage() {
     </div>
   );
 }
+
