@@ -1,3 +1,4 @@
+﻿// Страница создания объявления с параметрами и фото.
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, X } from 'lucide-react';
@@ -275,3 +276,4 @@ export default function CreateProductPage() {
     </div>
   );
 }
+

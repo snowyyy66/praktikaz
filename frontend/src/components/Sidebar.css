@@ -1,3 +1,4 @@
+﻿/* Стили боковой навигации и элементов меню. */
 .sidebar {
   width: 260px;
   background-color: var(--bg-sidebar);
@@ -9,7 +10,7 @@
 
 .logo-container {
   padding: 0 24px 30px;
-  /* Premium typography */
+  /* Премиальная типографика */
   font-family: 'Outfit', sans-serif;
 }
 
@@ -80,3 +81,4 @@
   color: var(--danger);
   background: transparent;
 }
+

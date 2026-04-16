@@ -1,3 +1,4 @@
+﻿// Главная страница с каталогом, фильтрами и подгрузкой.
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { Eye, Heart, Gavel } from 'lucide-react';
@@ -192,3 +193,4 @@ export default function HomePage() {
     </div>
   );
 }
+

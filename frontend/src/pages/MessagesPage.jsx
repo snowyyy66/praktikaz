@@ -1,3 +1,4 @@
+﻿// Страница диалогов и обмена сообщениями.
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
 import { api, getUserId, isAdmin } from '../api';
@@ -186,3 +187,4 @@ export default function MessagesPage() {
     </div>
   );
 }
+

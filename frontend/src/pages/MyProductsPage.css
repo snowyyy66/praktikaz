@@ -1,3 +1,4 @@
+﻿/* Стили управления собственными объявлениями и модалки. */
 .product-card-wrapper {
   display: flex;
   flex-direction: column;
@@ -68,7 +69,7 @@
   box-shadow: 0 4px 12px rgba(220, 47, 2, 0.2);
 }
 
-/* Modal */
+/* Модальное окно */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -162,7 +163,7 @@
   box-shadow: 0 0 0 4px rgba(43, 118, 251, 0.1);
 }
 
-/* Custom File Input Styling */
+/* Стили кастомного поля загрузки файла */
 .file-input-wrapper {
   position: relative;
   display: flex;
@@ -297,3 +298,4 @@
 .edit-photo-remove:hover {
   background: var(--danger);
 }
+

@@ -1,3 +1,4 @@
+﻿/* Стили интерфейса диалогов и чата сообщений. */
 .messages-page {
   display: flex;
   flex-direction: column;
@@ -128,7 +129,7 @@
   line-height: 1;
 }
 
-/* Chat area */
+/* Область чата */
 .messages-chat {
   display: flex;
   flex-direction: column;
@@ -243,3 +244,4 @@
 
 .chat-input-row button:hover:not(:disabled) { background: var(--accent-hover); }
 .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+

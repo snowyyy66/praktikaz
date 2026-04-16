@@ -1,3 +1,4 @@
+﻿// Показывает избранные пользователем объявления.
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Heart, Eye } from 'lucide-react';
@@ -96,3 +97,4 @@ export default function FavoritesPage() {
     </div>
   );
 }
+

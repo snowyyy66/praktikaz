@@ -1,3 +1,4 @@
+﻿// Публичный профиль продавца с товарами и отзывами.
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, MapPin, Calendar, Star, Package, ShoppingBag, Eye, Heart } from 'lucide-react';
@@ -18,12 +19,7 @@ function PublicProfilePage() {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        // We need a backend endpoint for public profile data, but for now we can fetch all products and filter
-        // Wait, does the API have fetch user by id? We added `getUserProfile` which returns current user.
-        // Let's check `api.js` if there is a `getUserInfo` endpoint. 
-        // Actually, we can fetch all products, find the user from the product, but what if they have no products?
-        // We will need to add `/api/users/:id` to server.js. Let's do that next.
-        
+        // Загружаем профиль, объявления и отзывы параллельно для ускорения рендера.
         const [userRes, productsRes, reviewsRes] = await Promise.all([
           api.getUser(id).catch(() => null),
           api.getUserProducts(id).catch(() => []),
@@ -115,6 +111,7 @@ function PublicProfilePage() {
             <div className="products-grid">
               {products.map(product => {
                  let images = [];
+                 // У старых записей images может прийти строкой — безопасно парсим.
                  try { images = JSON.parse(product.images) || []; } catch(e){}
                  const mainImg = images.length > 0 ? imgUrl(images[0]) : null;
 
@@ -173,3 +170,4 @@ function PublicProfilePage() {
 }
 
 export default PublicProfilePage;
+

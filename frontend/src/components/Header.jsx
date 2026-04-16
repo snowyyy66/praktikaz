@@ -1,3 +1,4 @@
+﻿// Рендерит верхнюю панель с поиском и быстрыми действиями.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, MessageSquare, Bell, User } from 'lucide-react';
@@ -69,3 +70,4 @@ export default function Header() {
     </header>
   );
 }
+

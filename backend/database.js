@@ -1,3 +1,4 @@
+﻿// Инициализирует БД и предоставляет утилиты для SQL-операций.
 import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
@@ -93,7 +94,7 @@ export async function initDatabase() {
   try { db.run('ALTER TABLE orders ADD COLUMN address_floor TEXT'); } catch (_) {}
   try { db.run('ALTER TABLE orders ADD COLUMN address_apartment TEXT'); } catch (_) {}
 
-  // Migration: add images column if missing
+  // Миграции: добавляем новые колонки, если БД была создана старой версией.
   try { db.run("ALTER TABLE products ADD COLUMN images TEXT DEFAULT '[]'"); } catch (_) {}
   try { db.run("ALTER TABLE products ADD COLUMN sale_type TEXT DEFAULT 'fixed'"); } catch (_) {}
   try { db.run("ALTER TABLE products ADD COLUMN auction_ends_at TEXT"); } catch (_) {}
@@ -288,3 +289,4 @@ export function runSql(sql, params = []) {
 
 /** Сырой экземпляр sql.js (для отладки или расширений) */
 export function getDb() { return db; }
+

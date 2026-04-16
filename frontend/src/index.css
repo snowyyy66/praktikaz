@@ -1,7 +1,8 @@
+﻿/* Глобальные стили, переменные темы и базовая раскладка. */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Premium Dark Mode Colors (Neutral, NO BLUE TINTS) */
+  /* Цвета премиальной темной темы (нейтральные, без синего оттенка) */
   --bg-app: #0A0A0A;
   --bg-sidebar: #121212;
   --bg-content: #1A1A1A;
@@ -60,7 +61,7 @@ button {
   color: inherit;
 }
 
-/* Animations */
+/* Анимации */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -70,7 +71,7 @@ button {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
-/* Common Layout Utilities */
+/* Общие утилиты раскладки */
 .app-container {
   display: flex;
   height: 100vh;
@@ -102,7 +103,7 @@ button {
   padding: 30px 40px;
 }
 
-/* Nice scrollbar */
+/* Стилизация скроллбара */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -117,3 +118,4 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary); 
 }
+

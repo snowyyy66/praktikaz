@@ -1,3 +1,4 @@
+// Очищает папку uploads от файлов, не используемых в базе данных.
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,28 +8,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, 'uploads');
 
 async function cleanup() {
-  console.log('Starting images cleanup...');
+  console.log('Запуск очистки файлов изображений...');
   
-  // 1. Initialize DB to read data
+  // Шаг 1: инициализируем БД, чтобы прочитать ссылки на используемые файлы.
   await initDatabase();
 
-  // 2. Collect all used image paths from DB
+  // Шаг 2: собираем имена всех файлов, на которые ссылаются записи в БД.
   const usedImages = new Set();
   
-  // From products
+  // Берем изображения из карточек объявлений.
   const products = queryAll('SELECT images FROM products');
   products.forEach(p => {
     try {
+      // В БД поле images хранится JSON-массивом строк.
       const imgs = JSON.parse(p.images || '[]');
       imgs.forEach(img => {
+        // Берем только локальные файлы, загруженные в /uploads/.
         if (typeof img === 'string' && img.startsWith('/uploads/')) {
+          // Для сравнения оставляем только имя файла без префикса пути.
           usedImages.add(img.replace('/uploads/', ''));
         }
       });
     } catch (e) {}
   });
 
-  // From users (avatars)
+  // Также учитываем аватары пользователей.
   const users = queryAll('SELECT avatar FROM users');
   users.forEach(u => {
     if (u.avatar && typeof u.avatar === 'string' && u.avatar.startsWith('/uploads/')) {
@@ -36,11 +40,11 @@ async function cleanup() {
     }
   });
 
-  console.log(`Found ${usedImages.size} unique images used in database.`);
+  console.log(`В БД найдено ${usedImages.size} уникальных используемых изображений.`);
 
-  // 3. List all files in uploads directory
+  // Шаг 3: получаем список реальных файлов на диске в папке uploads.
   if (!fs.existsSync(uploadsDir)) {
-    console.log('Uploads directory does not exist. Nothing to clean.');
+    console.log('Папка uploads отсутствует, очищать нечего.');
     return;
   }
 
@@ -48,29 +52,30 @@ async function cleanup() {
   let deletedCount = 0;
 
   files.forEach(file => {
-    // Skip hidden files if any
+    // Пропускаем скрытые служебные файлы (если такие есть).
     if (file.startsWith('.')) return;
 
+    // Если файла нет в множестве используемых, считаем его «сиротой» и удаляем.
     if (!usedImages.has(file)) {
       const filePath = path.join(uploadsDir, file);
       try {
-        // Double check if it's a file (not a subdirectory)
+        // Дополнительная защита: удаляем только обычные файлы, не директории.
         if (fs.lstatSync(filePath).isFile()) {
           fs.unlinkSync(filePath);
-          console.log(`Deleted orphan file: ${file}`);
+          console.log(`Удалён неиспользуемый файл: ${file}`);
           deletedCount++;
         }
       } catch (err) {
-        console.error(`Failed to delete ${file}:`, err.message);
+        console.error(`Не удалось удалить ${file}:`, err.message);
       }
     }
   });
 
-  console.log(`Cleanup complete. Deleted ${deletedCount} unused files.`);
+  console.log(`Очистка завершена. Удалено ${deletedCount} неиспользуемых файлов.`);
   process.exit(0);
 }
 
 cleanup().catch(err => {
-  console.error('Cleanup failed:', err);
+  console.error('Очистка завершилась с ошибкой:', err);
   process.exit(1);
 });
