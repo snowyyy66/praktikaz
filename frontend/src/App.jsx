@@ -15,6 +15,11 @@ import NotificationsPage from './pages/NotificationsPage';
 import AdminPage from './pages/AdminPage';
 import { isAdmin as checkIsAdmin } from './api';
 
+/**
+ * Компонент App (Скелет приложения)
+ * Определяет общую структуру страниц (Header, Sidebar) и содержит глобальный Роутинг.
+ * Использует react-router-dom для переключения компонентов в зависимости от URL. Хранит глобальное состояние входа и админ-режима.
+ */
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);

@@ -3,6 +3,10 @@ import { Mail, Lock, User as UserIcon } from 'lucide-react';
 import { api } from '../api';
 import './AuthPage.css';
 
+/**
+ * Компонент AuthPage (Страница авторизации)
+ * Обрабатывает логику входа и регистрации, переключаясь между формами.
+ */
 export default function AuthPage({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);

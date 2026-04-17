@@ -9,6 +9,10 @@ import './MyProductsPage.css';
 const MAX_FILES = 10;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+/**
+ * Компонент AdminPage (Панель администратора)
+ * Привилегированный доступ ко всем объявлениям платформы для их модерации и удаления.
+ */
 export default function AdminPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);

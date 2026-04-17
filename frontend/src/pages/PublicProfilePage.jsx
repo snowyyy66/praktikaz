@@ -18,11 +18,7 @@ function PublicProfilePage() {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        // We need a backend endpoint for public profile data, but for now we can fetch all products and filter
-        // Wait, does the API have fetch user by id? We added `getUserProfile` which returns current user.
-        // Let's check `api.js` if there is a `getUserInfo` endpoint. 
-        // Actually, we can fetch all products, find the user from the product, but what if they have no products?
-        // We will need to add `/api/users/:id` to server.js. Let's do that next.
+        // Запрашиваем информацию профиля из API
         
         const [userRes, productsRes, reviewsRes] = await Promise.all([
           api.getUser(id).catch(() => null),

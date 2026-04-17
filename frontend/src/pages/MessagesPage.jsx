@@ -5,6 +5,10 @@ import './MessagesPage.css';
 
 const POLL_MS = 2500;
 
+/**
+ * Компонент MessagesPage (Сообщения)
+ * Реализует интерфейс мессенджера: список диалогов слева и окно активного чата (в реальном времени, шорт-поллинг) справа.
+ */
 export default function MessagesPage() {
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);

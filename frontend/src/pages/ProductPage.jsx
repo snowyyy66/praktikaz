@@ -160,6 +160,11 @@ const FloorPlanC = () => (
   </svg>
 );
 
+/**
+ * Компонент ProductPage (Страница объявления)
+ * Отображает полную информацию о товаре, аукцион в реальном времени, возможность аренды, покупки или связи с продавцом.
+ * Включает галерею фотографий и блок отзывов.
+ */
 export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -197,7 +202,7 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!id) return;
-    // Guard against double increment in React Strict Mode (dev) on the same mount
+    // Защита от двойного инкремента просмотров в режиме React Strict Mode (для разработки)
     if (!viewIncremented.current) {
       api.incrementProductViews(id).catch(err => console.error('Failed to increment views:', err));
       viewIncremented.current = true;
@@ -332,7 +337,7 @@ export default function ProductPage() {
       
       await api.createOrder(getUserId(), product.id, payload);
       setBought(true);
-      // We don't close modal immediately, we show success inside it
+      // Не закрываем модалку сразу, показываем успешное сообщение внутри
     } catch (err) {
       setBuyError(err.message || 'Ошибка при оформлении заказа');
     } finally {

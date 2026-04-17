@@ -42,6 +42,10 @@ const CATEGORY_FIELDS = {
   ],
 };
 
+/**
+ * Компонент CreateProductPage (Создание объявления)
+ * Форма с динамическими полями в зависимости от категории (продажа, аукцион, аренда, услуги) и возможностью загрузки изображений.
+ */
 export default function CreateProductPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);

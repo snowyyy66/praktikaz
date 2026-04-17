@@ -11,6 +11,11 @@ const SORT_OPTIONS = [
   { value: 'popular', label: 'Популярные' },
 ];
 
+/**
+ * Компонент HomePage (Главная страница)
+ * Отображает ленту объявлений (карточки) с возможностью сортировки, фильтрации и бесконечного скролла.
+ * Использует IntersectionObserver для подгрузки новых страниц (пагинация) по мере прокрутки.
+ */
 export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);

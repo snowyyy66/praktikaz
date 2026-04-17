@@ -3,6 +3,10 @@ import { ArrowUpRight, ArrowDownLeft, Package } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './OrdersPage.css';
 
+/**
+ * Компонент OrdersPage (Заказы)
+ * Содержит историю сделок пользователя (как покупок, так и продаж), распределенную по датам.
+ */
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);

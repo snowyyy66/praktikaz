@@ -9,6 +9,10 @@ const TYPE_ICON = {
   system: '📢',
 };
 
+/**
+ * Компонент NotificationsPage (Уведомления)
+ * Показывает список системных уведомлений пользователя (аукционы, ставки, продажи, отзывы).
+ */
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);

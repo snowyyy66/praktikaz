@@ -46,6 +46,10 @@ function getCatalogBadge(totalAds = 0) {
   return { title: 'Пустая витрина', hint: 'Добавь первое объявление', tone: 'gray' };
 }
 
+/**
+ * Компонент ProfilePage (Личный кабинет настройки)
+ * Раздел, где пользователь может отредактировать свои личные данные: сменить имя, телефон, город и обновить аватарку.
+ */
 export default function ProfilePage() {
   const params = useParams();
   const ownUserId = getUserId();

@@ -9,6 +9,10 @@ import './MyProductsPage.css';
 const MAX_FILES = 10;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+/**
+ * Компонент MyProductsPage (Мои объявления)
+ * Раздел селлера, где он управляет своими активными карточками: редактирует описание, загружает фото и снимает с публикации.
+ */
 export default function MyProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);

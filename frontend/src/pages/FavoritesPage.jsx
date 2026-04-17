@@ -9,6 +9,10 @@ function cardImgUrl(src) {
   return src.startsWith('http') ? src : `http://localhost:3000${src}`;
 }
 
+/**
+ * Компонент FavoritesPage (Избранные объявления)
+ * Отображает список товаров, которые пользователь добавил в избранное.
+ */
 export default function FavoritesPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
