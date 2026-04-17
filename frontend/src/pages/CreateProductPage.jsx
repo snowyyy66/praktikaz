@@ -5,7 +5,7 @@ import { api, getUserId } from '../api';
 import './CreateProductPage.css';
 
 const MAX_FILES = 10;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 const CATEGORY_CONDITIONS = {
   transport: ['Б/У', 'Новое'],
@@ -84,9 +84,11 @@ export default function CreateProductPage() {
     const valid = [];
     const errors = [];
     for (const f of files) {
-      if (!f.type?.startsWith('image/')) { errors.push(`${f.name}: не изображение`); continue; }
-      if (f.size > MAX_FILE_SIZE) { errors.push(`${f.name}: больше 5MB`); continue; }
-      valid.push({ file: f, url: URL.createObjectURL(f) });
+      const isVideo = f.type?.startsWith('video/mp4') || f.type?.startsWith('video/quicktime');
+      const isImg = f.type === 'image/jpeg' || f.type === 'image/png' || f.type === 'image/gif';
+      if (!isImg && !isVideo) { errors.push(`${f.name}: формат не поддерживается (только jpg, png, gif, mp4, mov)`); continue; }
+      if (f.size > MAX_FILE_SIZE) { errors.push(`${f.name}: больше 50MB`); continue; }
+      valid.push({ file: f, url: URL.createObjectURL(f), isVideo });
       if (valid.length >= MAX_FILES) break;
     }
     if (errors.length) setPhotoError(errors.slice(0, 2).join('; '));
@@ -255,14 +257,17 @@ export default function CreateProductPage() {
           <div className="photo-upload-section">
             <label className="photo-upload-label">
               <Upload size={20} />
-              <span>Добавить фотографии</span>
-              <input type="file" accept="image/*" multiple onChange={handlePhotos} style={{ display: 'none' }} />
+              <span>Добавить медиа (фото или видео)</span>
+              <input type="file" accept=".jpg,.jpeg,.png,.gif,.mp4,.mov" multiple onChange={handlePhotos} style={{ display: 'none' }} />
             </label>
             {photos.length > 0 && (
               <div className="photo-previews">
                 {photos.map((p, idx) => (
                   <div className="photo-preview" key={idx}>
-                    <img src={p.url} alt="" />
+                    {p.isVideo 
+                      ? <video src={p.url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> 
+                      : <img src={p.url} alt="" />
+                    }
                     <button type="button" className="photo-remove" onClick={() => removePhoto(idx)}><X size={12} /></button>
                   </div>
                 ))}

@@ -124,4 +124,10 @@
   justify-content: center;
   color: var(--text-secondary);
   border: 2px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.user-avatar:hover {
+  border-color: var(--accent);
 }

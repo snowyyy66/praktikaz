@@ -8,9 +8,19 @@ export default function Header() {
   const [query, setQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [userAvatar, setUserAvatar] = useState(null);
+  const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    const uid = getUserId();
+    if (uid) {
+      api.getUser(uid).then(u => {
+        setUserAvatar(u.avatar || null);
+        setUserName(u.username || '');
+      }).catch(() => {});
+    }
+
     const load = () => {
       api.getNotifications(getUserId())
         .then(data => setUnreadCount(data.filter(n => !n.is_read).length))
@@ -63,7 +73,12 @@ export default function Header() {
         </button>
 
         <button className="user-avatar" onClick={() => navigate('/profile')}>
-          <User size={20} />
+          {userAvatar
+            ? <img src={`http://localhost:3000${userAvatar}`} alt={userName} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+            : userName
+              ? <span style={{fontWeight:700,fontSize:14}}>{userName.charAt(0).toUpperCase()}</span>
+              : <User size={20} />
+          }
         </button>
       </div>
     </header>

@@ -418,10 +418,13 @@ export default function ProductPage() {
         <div className="product-left">
           <div className="product-image-large">
             {product.images && product.images.length > 0 ? (
-              <img src={imgUrl(product.images[activeImg])} alt={product.title} className="product-main-img" />
+              typeof product.images[activeImg] === 'string' && product.images[activeImg].match(/\.(mp4|mov)$/i)
+                ? <video src={imgUrl(product.images[activeImg])} className="product-main-img" controls autoPlay loop muted playsInline />
+                : <img src={imgUrl(product.images[activeImg])} alt={product.title} className="product-main-img" />
             ) : (
               <div className="image-placeholder">ФОТО</div>
             )}
+            {!isSeller && (
             <button
               type="button"
               className={`like-btn-large${product.is_favorite ? ' favorite-on' : ''}`}
@@ -431,18 +434,30 @@ export default function ProductPage() {
               <Heart size={20} fill={product.is_favorite ? 'currentColor' : 'none'} />
               <span>{product.is_favorite ? 'В избранном' : 'В избранное'}</span>
             </button>
+            )}
           </div>
           {product.images && product.images.length > 1 && (
             <div className="product-image-thumbs">
-              {product.images.map((img, i) => (
-                <img
-                  key={i}
-                  src={imgUrl(img)}
-                  alt=""
-                  className={`product-thumb${activeImg === i ? ' active' : ''}`}
-                  onClick={() => setActiveImg(i)}
-                />
-              ))}
+              {product.images.map((img, i) => {
+                const isVideo = typeof img === 'string' && img.match(/\.(mp4|mov)$/i);
+                return isVideo ? (
+                  <video
+                    key={i}
+                    src={imgUrl(img)}
+                    className={`product-thumb${activeImg === i ? ' active' : ''}`}
+                    onClick={() => setActiveImg(i)}
+                    autoPlay loop muted playsInline
+                  />
+                ) : (
+                  <img
+                    key={i}
+                    src={imgUrl(img)}
+                    alt=""
+                    className={`product-thumb${activeImg === i ? ' active' : ''}`}
+                    onClick={() => setActiveImg(i)}
+                  />
+                );
+              })}
             </div>
           )}
 

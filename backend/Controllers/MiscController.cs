@@ -14,6 +14,13 @@ public class MiscController : ControllerBase
         _db = db;
     }
 
+    [HttpGet("api/fix")]
+    public async Task<IActionResult> Fix()
+    {
+        await _db.ExecuteAsync("UPDATE notifications SET related_user_id = 1 WHERE type = 'sale'");
+        return Ok(new { success = true });
+    }
+
     public class FavoriteRequest
     {
         public int user_id { get; set; }
@@ -25,6 +32,11 @@ public class MiscController : ControllerBase
     {
         if (req.user_id <= 0 || req.product_id <= 0) return BadRequest(new { error = "Некорректные данные" });
         
+        // Нельзя добавить своё объявление в избранное
+        var sellerId = await _db.QueryFirstOrDefaultAsync<int>("SELECT seller_id FROM products WHERE id = @pid", new { pid = req.product_id });
+        if (sellerId == req.user_id)
+            return BadRequest(new { error = "Нельзя добавить своё объявление в избранное" });
+
         var existing = await _db.QueryFirstOrDefaultAsync<int>("SELECT id FROM favorites WHERE user_id = @user_id AND product_id = @product_id", new { req.user_id, req.product_id });
         if (existing > 0)
         {
@@ -54,17 +66,19 @@ public class MiscController : ControllerBase
         var product = await _db.QueryFirstOrDefaultAsync<dynamic>("SELECT seller_id FROM products WHERE id = @id", new { id = req.product_id });
         if (product == null) return NotFound(new { error = "Товар не найден" });
 
+        int sellerId = Convert.ToInt32(product.seller_id);
+
         var hasPurchased = await _db.QueryFirstOrDefaultAsync<int>("SELECT id FROM orders WHERE buyer_id = @bid AND product_id = @pid", new { bid = req.reviewer_id, pid = req.product_id });
         if (hasPurchased == 0) return StatusCode(403, new { error = "Отзыв можно оставить только после покупки товара" });
 
         try {
             await _db.ExecuteAsync("INSERT INTO reviews (reviewer_id, target_user_id, product_id, rating, text) VALUES (@rid, @tid, @pid, @rating, @text)",
-                new { rid = req.reviewer_id, tid = (int)product.seller_id, pid = req.product_id, rating = req.rating, text = req.text ?? "" });
+                new { rid = req.reviewer_id, tid = sellerId, pid = req.product_id, rating = req.rating, text = req.text ?? "" });
 
-            var avg = await _db.QueryFirstOrDefaultAsync<double>("SELECT AVG(rating) FROM reviews WHERE target_user_id = @tid", new { tid = (int)product.seller_id });
+            var avg = await _db.QueryFirstOrDefaultAsync<double>("SELECT AVG(rating) FROM reviews WHERE target_user_id = @tid", new { tid = sellerId });
             var newRating = Math.Round(Math.Max(1.0, avg) * 10) / 10;
-            await _db.ExecuteAsync("UPDATE users SET rating = @rating WHERE id = @tid", new { rating = newRating, tid = (int)product.seller_id });
-            await _db.ExecuteAsync("INSERT INTO notifications (user_id, type, text) VALUES (@tid, 'review', @text)", new { tid = (int)product.seller_id, text = $"Новый отзыв на ваш товар — оценка {req.rating}/5" });
+            await _db.ExecuteAsync("UPDATE users SET rating = @rating WHERE id = @tid", new { rating = newRating, tid = sellerId });
+            await _db.ExecuteAsync("INSERT INTO notifications (user_id, type, text) VALUES (@tid, 'review', @text)", new { tid = sellerId, text = $"Новый отзыв на ваш товар — оценка {req.rating}/5" });
 
             return Ok(new { success = true });
         } catch (Exception ex) {

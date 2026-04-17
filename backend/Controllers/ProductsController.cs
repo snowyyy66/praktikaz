@@ -173,9 +173,28 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/views")]
-    public async Task<IActionResult> IncrementViews(int id)
+    public async Task<IActionResult> IncrementViews(int id, [FromQuery] int? user_id)
     {
-        await _db.ExecuteAsync("UPDATE products SET views = views + 1 WHERE id = @id", new { id });
+        if (user_id.HasValue && user_id.Value > 0)
+        {
+            // Не считаем просмотр от самого продавца
+            var sellerId = await _db.QueryFirstOrDefaultAsync<int>("SELECT seller_id FROM products WHERE id = @id", new { id });
+            if (sellerId == user_id.Value)
+                return Ok(new { success = true, skipped = true });
+
+            // Уникальный просмотр — вставляем запись, если уже есть — игнорируем
+            var inserted = await _db.ExecuteAsync(
+                "INSERT OR IGNORE INTO product_views (product_id, user_id) VALUES (@id, @uid)",
+                new { id, uid = user_id.Value });
+
+            if (inserted > 0)
+                await _db.ExecuteAsync("UPDATE products SET views = views + 1 WHERE id = @id", new { id });
+        }
+        else
+        {
+            // Анонимные пользователи — просто +1 (как раньше)
+            await _db.ExecuteAsync("UPDATE products SET views = views + 1 WHERE id = @id", new { id });
+        }
         return Ok(new { success = true });
     }
 
@@ -306,8 +325,16 @@ public class ProductsController : ControllerBase
         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
 
         var newUrls = new List<string>();
+        var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov" };
+        
         foreach (var file in images)
         {
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            if (!allowedExt.Contains(ext))
+            {
+                return BadRequest(new { error = $"Формат {ext} не поддерживается. Разрешены только: jpg, png, gif, mp4, mov" });
+            }
+
             var fileName = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{System.Text.RegularExpressions.Regex.Replace(file.FileName, "[^a-zA-Z0-9.]", "_")}";
             var path = Path.Combine(uploadsDir, fileName);
             using (var stream = new FileStream(path, FileMode.Create))
@@ -431,8 +458,12 @@ public class ProductsController : ControllerBase
     [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] JsonElement body)
     {
-        int sellerId = body.TryGetProperty("seller_id", out var sid) ? sid.GetInt32() : 0;
-        int actorId = body.TryGetProperty("actor_id", out var aid) ? aid.GetInt32() : sellerId;
+        int sellerId = 0;
+        if (body.TryGetProperty("seller_id", out var sid))
+            sellerId = sid.ValueKind == System.Text.Json.JsonValueKind.String ? int.Parse(sid.GetString()!) : sid.GetInt32();
+        int actorId = sellerId;
+        if (body.TryGetProperty("actor_id", out var aid))
+            actorId = aid.ValueKind == System.Text.Json.JsonValueKind.String ? int.Parse(aid.GetString()!) : aid.GetInt32();
 
         if (id <= 0) return BadRequest(new { error = "Некорректный id объявления" });
         if (sellerId <= 0) return BadRequest(new { error = "Укажите seller_id" });

@@ -7,7 +7,7 @@ import './HomePage.css';
 import './MyProductsPage.css';
 
 const MAX_FILES = 10;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 /**
  * Компонент MyProductsPage (Мои объявления)
@@ -54,8 +54,10 @@ export default function MyProductsPage() {
     const valid = [];
     const errors = [];
     for (const f of files) {
-      if (!f.type?.startsWith('image/')) { errors.push(`${f.name}: не изображение`); continue; }
-      if (f.size > MAX_FILE_SIZE) { errors.push(`${f.name}: больше 5MB`); continue; }
+      const isVideo = f.type?.startsWith('video/mp4') || f.type?.startsWith('video/quicktime');
+      const isImg = f.type === 'image/jpeg' || f.type === 'image/png' || f.type === 'image/gif';
+      if (!isImg && !isVideo) { errors.push(`${f.name}: формат не поддерживается`); continue; }
+      if (f.size > MAX_FILE_SIZE) { errors.push(`${f.name}: больше 50MB`); continue; }
       valid.push(f);
       if (valid.length >= MAX_FILES) break;
     }
@@ -120,13 +122,44 @@ export default function MyProductsPage() {
         <div className="products-grid">
           {products.map(product => (
             <div key={product.id} className="product-card-wrapper">
-              <NavLink to={`/product/${product.id}`} className="product-card">
+              <NavLink to={`/product/${product.id}`} className="product-card"
+                onMouseEnter={e => {
+                  const v = e.currentTarget.querySelector('video'); if (v) v.play();
+                  const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif) gif.src = gif.dataset.gif;
+                }}
+                onMouseLeave={e => {
+                  const v = e.currentTarget.querySelector('video'); if (v) { v.pause(); v.currentTime = 0; }
+                  const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif && gif.dataset.frozen) gif.src = gif.dataset.frozen;
+                }}
+              >
                 <div className="card-image">
-                  {product.images?.[0]
-                    ? <img src={cardImgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
-                    : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase()}</div>
-                  }
-                  <div className="card-badges">
+                {product.images?.[0] ? (
+                  typeof product.images[0] === 'string' && product.images[0].match(/\.(mp4|mov)$/i)
+                    ? <video src={cardImgUrl(product.images[0])} className="card-img" loop muted playsInline preload="metadata" style={{ pointerEvents: 'none' }} />
+                    : <img src={cardImgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy"
+                        onLoad={e => {
+                          const img = e.target;
+                          if (product.images[0].match(/\.gif$/i) && !img.dataset.frozen) {
+                            fetch(img.src).then(r => r.blob()).then(blob => {
+                              const url = URL.createObjectURL(blob);
+                              const tmp = new Image();
+                              tmp.onload = () => {
+                                const c = document.createElement('canvas');
+                                c.width = tmp.width; c.height = tmp.height;
+                                c.getContext('2d').drawImage(tmp, 0, 0);
+                                img.dataset.gif = img.src;
+                                img.dataset.frozen = c.toDataURL();
+                                img.src = img.dataset.frozen;
+                              };
+                              tmp.src = url;
+                            }).catch(() => {});
+                          }
+                        }}
+                      />
+                ) : (
+                  <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase() || 'ФТ'}</div>
+                )}
+                <div className="card-badges">
                     <div className="badge"><Eye size={11} /> {product.views}</div>
                     <div className="badge condition-badge">{product.condition}</div>
                   </div>
@@ -212,7 +245,7 @@ export default function MyProductsPage() {
                   <input 
                     id="edit-photos-upload"
                     type="file" 
-                    accept="image/*" 
+                    accept=".jpg,.jpeg,.png,.gif,.mp4,.mov" 
                     multiple 
                     onChange={handleEditPhotos} 
                   />
@@ -222,12 +255,18 @@ export default function MyProductsPage() {
               <div className="form-group">
                 <label>Текущие фото объявления</label>
                 <div className="edit-photo-grid">
-                  {(editingProduct.images || []).map((img) => (
+                  {(editingProduct.images || []).map((img) => {
+                    const src = img.startsWith('/uploads/') ? `http://localhost:3000${img}` : img;
+                    const isVid = typeof img === 'string' && img.match(/\.(mp4|mov)$/i);
+                    return (
                     <div key={img} className="edit-photo-item">
-                      <img src={img.startsWith('/uploads/') ? `http://localhost:3000${img}` : img} alt="" />
+                      {isVid
+                        ? <video src={src} autoPlay loop muted playsInline style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                        : <img src={src} alt="" />
+                      }
                       <button type="button" className="edit-photo-remove" onClick={() => handleDeleteImage(img)}>Удалить</button>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
               <div className="modal-actions">

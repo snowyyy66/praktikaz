@@ -118,4 +118,6 @@ public class Notification
     public string text { get; set; } = "";
     public long is_read { get; set; }
     public string created_at { get; set; } = "";
+    public long? related_user_id { get; set; }
+    public long? related_product_id { get; set; }
 }

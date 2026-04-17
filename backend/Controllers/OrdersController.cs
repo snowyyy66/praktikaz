@@ -123,7 +123,7 @@ public class OrdersController : ControllerBase
                 ? $"Аренда «{product.title}»: {rentHoursSaved} ч. — {total.ToString("N0", new System.Globalization.CultureInfo("ru-RU"))} ₽"
                 : $"Новый заказ на \"{product.title}\" ({total.ToString("N0", new System.Globalization.CultureInfo("ru-RU"))} ₽)";
 
-            await _db.ExecuteAsync("INSERT INTO notifications (user_id, type, text) VALUES (@id, 'sale', @txt)", new { id = product.seller_id, txt = saleText });
+            await _db.ExecuteAsync("INSERT INTO notifications (user_id, type, text, related_user_id, related_product_id) VALUES (@id, 'sale', @txt, @buyer_id, @pid)", new { id = product.seller_id, txt = saleText, buyer_id = req.buyer_id, pid = req.product_id });
 
             return Ok(new { success = true });
         } catch (Exception ex) {

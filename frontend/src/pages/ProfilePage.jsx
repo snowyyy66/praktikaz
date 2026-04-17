@@ -118,7 +118,7 @@ export default function ProfilePage() {
           )}
           {isOwnProfile && <label className="avatar-upload-btn" title="Сменить фото">
             <Camera size={14} />
-            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+            <input type="file" accept=".jpg,.jpeg,.png,.gif" style={{ display: 'none' }} onChange={async (e) => {
               const file = e.target.files[0];
               if (!file) return;
               const res = await api.uploadAvatar(profileUserId, file);
@@ -234,12 +234,43 @@ export default function ProfilePage() {
         ) : (
           <div className="mini-products-grid">
             {products.slice(0, 4).map(p => (
-              <NavLink to={`/product/${p.id}`} key={p.id} className="mini-card">
+              <NavLink to={`/product/${p.id}`} key={p.id} className="mini-card"
+                onMouseEnter={e => {
+                  const v = e.currentTarget.querySelector('video'); if (v) v.play();
+                  const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif) gif.src = gif.dataset.gif;
+                }}
+                onMouseLeave={e => {
+                  const v = e.currentTarget.querySelector('video'); if (v) { v.pause(); v.currentTime = 0; }
+                  const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif && gif.dataset.frozen) gif.src = gif.dataset.frozen;
+                }}
+              >
                 <div className="mini-card-img">
-                  {p.images?.[0]
-                    ? <img src={imgUrl(p.images[0])} alt={p.title} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loading="lazy" />
-                    : <div className="image-placeholder">{p.category_name?.substring(0, 2).toUpperCase()}</div>
-                  }
+                  {p.images?.[0] ? (
+                    typeof p.images[0] === 'string' && p.images[0].match(/\.(mp4|mov)$/i)
+                      ? <video src={`http://localhost:3000${p.images[0]}`} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loop muted playsInline preload="metadata" />
+                      : <img src={p.images[0]?.startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`} alt={p.title} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loading="lazy"
+                          onLoad={e => {
+                            const img = e.target;
+                            if (p.images[0].match(/\.gif$/i) && !img.dataset.frozen) {
+                              fetch(img.src).then(r => r.blob()).then(blob => {
+                                const url = URL.createObjectURL(blob);
+                                const tmp = new Image();
+                                tmp.onload = () => {
+                                  const c = document.createElement('canvas');
+                                  c.width = tmp.width; c.height = tmp.height;
+                                  c.getContext('2d').drawImage(tmp, 0, 0);
+                                  img.dataset.gif = img.src;
+                                  img.dataset.frozen = c.toDataURL();
+                                  img.src = img.dataset.frozen;
+                                };
+                                tmp.src = url;
+                              }).catch(() => {});
+                            }
+                          }}
+                        />
+                  ) : (
+                    <div className="image-placeholder">{p.category_name?.substring(0, 2).toUpperCase()}</div>
+                  )}
                 </div>
                 <div className="mini-card-info">
                   <span className="mini-title">{p.title}</span>

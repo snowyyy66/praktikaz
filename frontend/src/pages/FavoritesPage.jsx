@@ -68,12 +68,43 @@ export default function FavoritesPage() {
       ) : (
         <div className="products-grid">
           {products.map(product => (
-            <NavLink to={`/product/${product.id}`} key={product.id} className="product-card">
+            <NavLink to={`/product/${product.id}`} key={product.id} className="product-card"
+              onMouseEnter={e => {
+                const v = e.currentTarget.querySelector('video'); if (v) v.play();
+                const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif) gif.src = gif.dataset.gif;
+              }}
+              onMouseLeave={e => {
+                const v = e.currentTarget.querySelector('video'); if (v) { v.pause(); v.currentTime = 0; }
+                const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif && gif.dataset.frozen) gif.src = gif.dataset.frozen;
+              }}
+            >
               <div className="card-image">
-                {product.images?.[0]
-                  ? <img src={cardImgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
-                  : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase()}</div>
-                }
+                {product.images?.[0] ? (
+                  typeof product.images[0] === 'string' && product.images[0].match(/\.(mp4|mov)$/i)
+                    ? <video src={cardImgUrl(product.images[0])} className="card-img" loop muted playsInline preload="metadata" style={{ pointerEvents: 'none' }} />
+                    : <img src={cardImgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy"
+                        onLoad={e => {
+                          const img = e.target;
+                          if (product.images[0].match(/\.gif$/i) && !img.dataset.frozen) {
+                            fetch(img.src).then(r => r.blob()).then(blob => {
+                              const url = URL.createObjectURL(blob);
+                              const tmp = new Image();
+                              tmp.onload = () => {
+                                const c = document.createElement('canvas');
+                                c.width = tmp.width; c.height = tmp.height;
+                                c.getContext('2d').drawImage(tmp, 0, 0);
+                                img.dataset.gif = img.src;
+                                img.dataset.frozen = c.toDataURL();
+                                img.src = img.dataset.frozen;
+                              };
+                              tmp.src = url;
+                            }).catch(() => {});
+                          }
+                        }}
+                      />
+                ) : (
+                  <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase() || 'ФТ'}</div>
+                )}
                 <div className="card-badges">
                   <div className="badge"><Eye size={11} /> {product.views}</div>
                 </div>

@@ -17,10 +17,8 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
-  const realUserId = parseInt(getUserId(), 10);
-  const [devUserId, setDevUserId] = useState(null);
-  const userId = Number.isFinite(devUserId) ? devUserId : realUserId;
-  const adminMode = isAdmin() && !Number.isFinite(devUserId);
+  const userId = parseInt(getUserId(), 10);
+  const adminMode = isAdmin();
 
   const activeConv = useMemo(
     () => conversations.find(c => c.id === activeConvId) || null,
@@ -85,6 +83,15 @@ export default function MessagesPage() {
     return conv.user1_id === userId ? conv.user2_name : conv.user1_name;
   };
 
+  const getOtherAvatar = (conv) => {
+    if (adminMode) return null;
+    return conv.user1_id === userId ? conv.user2_avatar : conv.user1_avatar;
+  };
+
+  const getOtherId = (conv) => {
+    return conv.user1_id === userId ? conv.user2_id : conv.user1_id;
+  };
+
   if (!Number.isFinite(userId)) {
     return (
       <div className="messages-page animate-fade-in">
@@ -97,17 +104,6 @@ export default function MessagesPage() {
 
   return (
     <div className="messages-page animate-fade-in">
-      {import.meta.env.DEV && (
-        <div className="dev-user-strip" title="В каждой вкладке можно выбрать своего пользователя — переписка между окнами с разными ID">
-          <span>Локально — кто вы:</span>
-          <button type="button" className="dev-user-btn" onClick={() => setDevUserId(null)}>как в логине</button>
-          {[1, 2, 3, 4, 5, 6].map(id => (
-            <button key={id} type="button" className={`dev-user-btn${userId === id ? ' active' : ''}`} onClick={() => setDevUserId(id)}>
-              {id}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="messages-main">
       <div className="messages-sidebar">
@@ -123,13 +119,19 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className="conv-list">
-            {conversations.map(conv => (
+            {conversations.map(conv => {
+              const otherAvatar = getOtherAvatar(conv);
+              return (
               <div
                 key={conv.id}
                 className={`conv-item${activeConvId === conv.id ? ' active' : ''}`}
                 onClick={() => setActiveConvId(conv.id)}
               >
-                <div className="conv-avatar">{getOtherName(conv)?.charAt(0).toUpperCase()}</div>
+                <div className="conv-avatar">
+                  {otherAvatar 
+                    ? <img src={`http://localhost:3000${otherAvatar}`} alt="" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> 
+                    : getOtherName(conv)?.charAt(0).toUpperCase()}
+                </div>
                 <div className="conv-info">
                   <div className="conv-name-row">
                     <div className="conv-name">{getOtherName(conv)}</div>
@@ -139,7 +141,7 @@ export default function MessagesPage() {
                   <div className="conv-last">{conv.last_message || 'Нет сообщений'}</div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
@@ -152,9 +154,30 @@ export default function MessagesPage() {
           </div>
         ) : (
           <>
-            <div className="chat-header">
-              <div className="chat-title">{getOtherName(activeConv)}</div>
-              {activeConv.product_title && <div className="chat-subtitle">По товару: {activeConv.product_title}</div>}
+            <div className="chat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div className="chat-title">{getOtherName(activeConv)}</div>
+                {activeConv.product_title && <div className="chat-subtitle">По товару: {activeConv.product_title}</div>}
+              </div>
+              {!adminMode && activeConv && (
+                <button 
+                  style={{
+                    padding: '6px 12px',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.style.borderColor = 'var(--accent)'}
+                  onMouseOut={(e) => e.target.style.borderColor = 'var(--border)'}
+                  onClick={() => window.location.href = `/profile/${getOtherId(activeConv)}`}
+                >
+                  Профиль пользователя
+                </button>
+              )}
             </div>
             <div className="chat-messages">
               {messages.length === 0 ? (

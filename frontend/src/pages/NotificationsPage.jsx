@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, MessageSquare } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './NotificationsPage.css';
 
@@ -67,6 +67,21 @@ export default function NotificationsPage() {
                 <div className="notif-text">{n.text}</div>
                 <div className="notif-time">{new Date(n.created_at).toLocaleString('ru-RU')}</div>
               </div>
+              
+              {n.type === 'sale' && n.related_user_id && (
+                <button 
+                  className="btn-notif-chat" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    api.createConversation(getUserId(), n.related_user_id, n.related_product_id)
+                      .then(res => window.location.href = `/messages?conversation=${res.id}`)
+                      .catch(console.error);
+                  }}
+                >
+                  <MessageSquare size={16} /> Написать
+                </button>
+              )}
+
               {!n.is_read && <div className="unread-dot" />}
             </div>
           ))}

@@ -28,6 +28,7 @@ public class ConversationsController : ControllerBase
         string baseSql = @"
             SELECT c.*,
               u1.username as user1_name, u2.username as user2_name,
+              u1.avatar as user1_avatar, u2.avatar as user2_avatar,
               u1.is_admin as user1_is_admin, u2.is_admin as user2_is_admin,
               p.title as product_title,
               (SELECT text FROM messages WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) as last_message,

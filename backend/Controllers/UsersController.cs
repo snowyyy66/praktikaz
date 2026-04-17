@@ -30,6 +30,11 @@ public class UsersController : ControllerBase
     {
         if (avatar == null) return BadRequest(new { error = "Файл не загружен" });
 
+        var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+        var ext = Path.GetExtension(avatar.FileName).ToLower();
+        if (!allowedExt.Contains(ext))
+            return BadRequest(new { error = $"Формат {ext} не поддерживается. Разрешены только: jpg, jpeg, png, gif" });
+
         var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads");
         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
 

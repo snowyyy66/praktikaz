@@ -86,3 +86,24 @@
   flex-shrink: 0;
   margin-top: 6px;
 }
+
+.btn-notif-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s, background-color 0.2s;
+  margin-left: auto; /* Pushes button to the right empty space */
+  align-self: center; /* Centers vertically within the item */
+}
+
+.btn-notif-chat:hover {
+  opacity: 0.9;
+}

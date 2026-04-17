@@ -79,8 +79,11 @@ export const api = {
     const q = uid ? `?user_id=${encodeURIComponent(uid)}` : '';
     return fetchApi(`/products/${id}${q}`);
   },
-  /** Инкремент просмотров */
-  incrementProductViews: (id) => fetchApi(`/products/${id}/views`, { method: 'POST' }),
+  incrementProductViews: (id) => {
+    const uid = getUserId();
+    const q = uid ? `?user_id=${encodeURIComponent(uid)}` : '';
+    return fetchApi(`/products/${id}/views${q}`, { method: 'POST' });
+  },
   /** История ставок по аукционному лоту */
   getProductBids: (id) => fetchApi(`/products/${id}/bids`),
   /** Сделать ставку на аукцион */
