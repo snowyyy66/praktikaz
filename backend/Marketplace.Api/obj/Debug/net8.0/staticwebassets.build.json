@@ -1,1 +1,11 @@
-{"Version":1,"Hash":"NHeFfzfAwOo49Y90Wdt2WKbtZDGJ3oX7/rWwHH/rDvY=","Source":"Marketplace.Api","BasePath":"/","Mode":"Root","ManifestType":"Build","ReferencedProjectsConfiguration":[],"DiscoveryPatterns":[],"Assets":[],"Endpoints":[]}
+{
+  "Version": 1,
+  "Hash": "Y8XLt2VORqfJbjxA7skRd8k7Omq3lJSS9pVJ3Q3t7is=",
+  "Source": "Marketplace.Api",
+  "BasePath": "_content/Marketplace.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

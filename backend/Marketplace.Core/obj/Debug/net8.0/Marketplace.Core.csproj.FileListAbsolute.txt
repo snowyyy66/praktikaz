@@ -10,3 +10,15 @@ C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Core\obj\Debug\
 C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Core\obj\Debug\net8.0\refint\Marketplace.Core.dll
 C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.pdb
 C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Core\obj\Debug\net8.0\ref\Marketplace.Core.dll
+F:\git\praktika\backend\Marketplace.Core\bin\Debug\net8.0\Marketplace.Core.deps.json
+F:\git\praktika\backend\Marketplace.Core\bin\Debug\net8.0\Marketplace.Core.dll
+F:\git\praktika\backend\Marketplace.Core\bin\Debug\net8.0\Marketplace.Core.pdb
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.GeneratedMSBuildEditorConfig.editorconfig
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.AssemblyInfoInputs.cache
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.AssemblyInfo.cs
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.csproj.CoreCompileInputs.cache
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.sourcelink.json
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.dll
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\refint\Marketplace.Core.dll
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\Marketplace.Core.pdb
+F:\git\praktika\backend\Marketplace.Core\obj\Debug\net8.0\ref\Marketplace.Core.dll
