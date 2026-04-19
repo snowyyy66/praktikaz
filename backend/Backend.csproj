@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Backend</RootNamespace>
@@ -10,11 +10,14 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Dapper" Version="2.1.35" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.3" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.4.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,322 @@
+[
+  {
+    "scenario": "Регистрация нового пользователя",
+    "expectedStatus": 200,
+    "actualStatus": 400,
+    "time": 56,
+    "hasFields": "No",
+    "dataPreview": "{\"error\":\"Пользователь с такой почтой или именем уже существует\"}"
+  },
+  {
+    "scenario": "Логин с верными данными (Admin)",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 135,
+    "hasFields": "No",
+    "dataPreview": "{\"success\":true,\"user_id\":1,\"is_admin\":true}"
+  },
+  {
+    "scenario": "Логин с неверным паролем",
+    "expectedStatus": 401,
+    "actualStatus": 401,
+    "time": 128,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Неверная почта или пароль\"}"
+  },
+  {
+    "scenario": "Логин с несуществующим email",
+    "expectedStatus": 401,
+    "actualStatus": 401,
+    "time": 3,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Неверная почта или пароль\"}"
+  },
+  {
+    "scenario": "Регистрация с уже занятым email",
+    "expectedStatus": 400,
+    "actualStatus": 400,
+    "time": 3,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Пользователь с такой почтой или именем уже существует\"}"
+  },
+  {
+    "scenario": "GET /products (пагинация)",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 4,
+    "hasFields": "No",
+    "dataPreview": "{\"items\":[{\"id\":9,\"title\":\"New Product\",\"description\":\"Test\",\"category_id\":\"\",\"price\":100,\"city\":\"Мо"
+  },
+  {
+    "scenario": "GET /products (категория)",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 3,
+    "hasFields": "Yes",
+    "dataPreview": "{\"items\":[],\"total_count\":0,\"page\":1,\"limit\":24,\"has_more\":false}"
+  },
+  {
+    "scenario": "GET /products (город)",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 3,
+    "hasFields": "Yes",
+    "dataPreview": "{\"items\":[],\"total_count\":0,\"page\":1,\"limit\":24,\"has_more\":false}"
+  },
+  {
+    "scenario": "GET /products (цены)",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 3,
+    "hasFields": "Yes",
+    "dataPreview": "{\"items\":[{\"id\":9,\"title\":\"New Product\",\"description\":\"Test\",\"category_id\":\"\",\"price\":100,\"city\":\"Мо"
+  },
+  {
+    "scenario": "GET /products/my?user_id=2",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 4,
+    "hasFields": "Yes",
+    "dataPreview": "{\"items\":[{\"id\":1,\"title\":\"iPhone 15 Pro Max 256GB\",\"description\":\"В идеальном состоянии, полный ком"
+  },
+  {
+    "scenario": "GET /products/:id",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 2,
+    "hasFields": "Yes",
+    "dataPreview": "{\"id\":9,\"title\":\"New Product\",\"description\":\"Test\",\"category_id\":\"\",\"price\":100,\"city\":\"Москва\",\"con"
+  },
+  {
+    "scenario": "POST /products (создать товар)",
+    "expectedStatus": 201,
+    "actualStatus": 200,
+    "time": 4,
+    "hasFields": "Yes",
+    "dataPreview": "{\"success\":true,\"id\":10}"
+  },
+  {
+    "scenario": "PUT /products/:id (обновить)",
+    "expectedStatus": 200,
+    "actualStatus": 405,
+    "time": 1,
+    "hasFields": "Yes",
+    "dataPreview": ""
+  },
+  {
+    "scenario": "DELETE /products/:id (удалить)",
+    "expectedStatus": 204,
+    "actualStatus": 405,
+    "time": 1,
+    "hasFields": "Yes",
+    "dataPreview": ""
+  },
+  {
+    "scenario": "GET /search?q=велосипед",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 31,
+    "hasFields": "Yes",
+    "dataPreview": "[]"
+  },
+  {
+    "scenario": "GET /search?q=а",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 6,
+    "hasFields": "Yes",
+    "dataPreview": "[{\"id\":1,\"title\":\"iPhone 15 Pro Max 256GB\",\"description\":\"В идеальном состоянии, полный комплект.\",\""
+  },
+  {
+    "scenario": "GET /search?q=пустой",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 2,
+    "hasFields": "Yes",
+    "dataPreview": "[]"
+  },
+  {
+    "scenario": "GET /categories",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 18,
+    "hasFields": "No",
+    "dataPreview": "[{\"id\":\"clothing\",\"name\":\"Одежда\",\"meta\":{\"conditions\":[\"Новое\",\"Б/У\"],\"fields\":[{\"name\":\"Бренд\",\"ke"
+  },
+  {
+    "scenario": "POST /reviews (rating=0)",
+    "expectedStatus": 400,
+    "actualStatus": 400,
+    "time": 8,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Рейтинг от 1 до 5\"}"
+  },
+  {
+    "scenario": "POST /reviews (rating=6)",
+    "expectedStatus": 400,
+    "actualStatus": 400,
+    "time": 2,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Рейтинг от 1 до 5\"}"
+  },
+  {
+    "scenario": "POST /reviews (rating=5)",
+    "expectedStatus": 201,
+    "actualStatus": 400,
+    "time": 4,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Товар не найден или у него нет продавца\"}"
+  },
+  {
+    "scenario": "GET /reviews?product_id=1",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 13,
+    "hasFields": "Yes",
+    "dataPreview": "[]"
+  },
+  {
+    "scenario": "GET /reviews?seller_id=2",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 2,
+    "hasFields": "Yes",
+    "dataPreview": "[]"
+  },
+  {
+    "scenario": "POST /conversations (создать)",
+    "expectedStatus": 200,
+    "actualStatus": 400,
+    "time": 10,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Некорректные участники диалога\"}"
+  },
+  {
+    "scenario": "POST /conversations (одинаковый user_id)",
+    "expectedStatus": 400,
+    "actualStatus": 400,
+    "time": 2,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Некорректные участники диалога\"}"
+  },
+  {
+    "scenario": "GET /conversations?user_id=X",
+    "expectedStatus": 200,
+    "actualStatus": 400,
+    "time": 19,
+    "hasFields": "Yes",
+    "dataPreview": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors "
+  },
+  {
+    "scenario": "POST /conversations/:id/messages",
+    "expectedStatus": 200,
+    "actualStatus": 400,
+    "time": 7,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Пустое сообщение\"}"
+  },
+  {
+    "scenario": "POST /conversations/:id/messages (пустое)",
+    "expectedStatus": 400,
+    "actualStatus": 400,
+    "time": 2,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Пустое сообщение\"}"
+  },
+  {
+    "scenario": "POST /favorites/toggle (добавить)",
+    "expectedStatus": 200,
+    "actualStatus": 404,
+    "time": 1,
+    "hasFields": "Yes",
+    "dataPreview": ""
+  },
+  {
+    "scenario": "POST /favorites/toggle (убрать)",
+    "expectedStatus": 200,
+    "actualStatus": 404,
+    "time": 1,
+    "hasFields": "Yes",
+    "dataPreview": ""
+  },
+  {
+    "scenario": "GET /users/:id/favorites",
+    "expectedStatus": 200,
+    "actualStatus": 400,
+    "time": 6,
+    "hasFields": "Yes",
+    "dataPreview": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors "
+  },
+  {
+    "scenario": "GET /users/:id",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 9,
+    "hasFields": "Yes",
+    "dataPreview": "{\"id\":2,\"username\":\"seller_alex\",\"email\":\"alex@demo.com\",\"is_admin\":0,\"phone\":\"+7 999 100-00-01\",\"ci"
+  },
+  {
+    "scenario": "GET /users/:id/products",
+    "expectedStatus": 200,
+    "actualStatus": 200,
+    "time": 27,
+    "hasFields": "Yes",
+    "dataPreview": "{\"items\":[{\"id\":1,\"title\":\"iPhone 15 Pro Max 256GB\",\"description\":\"В идеальном состоянии, полный ком"
+  },
+  {
+    "scenario": "PUT /users/:id",
+    "expectedStatus": 200,
+    "actualStatus": 400,
+    "time": 8,
+    "hasFields": "Yes",
+    "dataPreview": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors "
+  },
+  {
+    "scenario": "POST /orders",
+    "expectedStatus": 201,
+    "actualStatus": 400,
+    "time": 11,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Buyer and Product IDs are required\"}"
+  },
+  {
+    "scenario": "GET /orders?user_id=X",
+    "expectedStatus": 200,
+    "actualStatus": 400,
+    "time": 7,
+    "hasFields": "Yes",
+    "dataPreview": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors "
+  },
+  {
+    "scenario": "Запрос несуществующего ID",
+    "expectedStatus": 404,
+    "actualStatus": 404,
+    "time": 2,
+    "hasFields": "Yes",
+    "dataPreview": "{\"error\":\"Not found\"}"
+  },
+  {
+    "scenario": "Невалидный JSON в body",
+    "expectedStatus": 400,
+    "actualStatus": 400,
+    "time": 5,
+    "hasFields": "Yes",
+    "dataPreview": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors "
+  },
+  {
+    "scenario": "Очень длинная строка в поиске",
+    "expectedStatus": 400,
+    "actualStatus": 200,
+    "time": 3,
+    "hasFields": "Yes",
+    "dataPreview": "[]"
+  },
+  {
+    "scenario": "Отрицательные значения цены/страницы",
+    "expectedStatus": 400,
+    "actualStatus": 200,
+    "time": 4,
+    "hasFields": "Yes",
+    "dataPreview": "{\"items\":[{\"id\":10,\"title\":\"New Product\",\"description\":\"Test\",\"category_id\":\"\",\"price\":100,\"city\":\"М"
+  }
+]

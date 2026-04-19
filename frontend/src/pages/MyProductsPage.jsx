@@ -29,7 +29,7 @@ export default function MyProductsPage() {
 
   function loadProducts() {
     api.getUserProducts(getUserId())
-      .then(data => setProducts(data))
+      .then(data => setProducts(Array.isArray(data) ? data : (data.items ?? [])))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }

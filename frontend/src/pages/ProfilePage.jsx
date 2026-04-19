@@ -227,7 +227,7 @@ export default function ProfilePage() {
 
 function ReviewCard({ r, isLeftByMe = false }) {
   const images = r.images || [];
-  const productImages = r.product_images || [];
+  const productImages = r.product_images || (r.product_image ? [r.product_image] : []);
   
   return (
     <div className="profile-review-card animate-slide-up">
@@ -260,7 +260,7 @@ function ReviewCard({ r, isLeftByMe = false }) {
       <NavLink to={`/product/${r.product_id}`} className="review-product-link">
         <div className="linked-product-mini">
           {productImages[0] ? (
-             <img src={`http://localhost:3000${productImages[0]}`} alt="" />
+             <img src={productImages[0].startsWith('/uploads/') ? `http://localhost:3000${productImages[0]}` : productImages[0]} alt="" />
           ) : (
              <div className="linked-placeholder">{r.product_category_id?.substring(0,2).toUpperCase() || 'P'}</div>
           )}

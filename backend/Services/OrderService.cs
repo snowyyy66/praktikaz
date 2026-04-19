@@ -14,10 +14,12 @@ public interface IOrderService
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IProductRepository _productRepository;
 
-    public OrderService(IOrderRepository orderRepository)
+    public OrderService(IOrderRepository orderRepository, IProductRepository productRepository)
     {
         _orderRepository = orderRepository;
+        _productRepository = productRepository;
     }
 
     public async Task<PagedResult<Order>> GetOrdersAsync(long? userId, string? status, int page, int limit)
@@ -42,6 +44,13 @@ public class OrderService : IOrderService
 
     public async Task CreateOrderAsync(Order order)
     {
+        if (order.seller_id <= 0)
+        {
+            var product = await _productRepository.GetByIdAsync(order.product_id);
+            if (product != null) order.seller_id = product.seller_id;
+        }
+        if (string.IsNullOrEmpty(order.status)) order.status = "completed";
+        if (string.IsNullOrEmpty(order.created_at)) order.created_at = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
         await _orderRepository.AddAsync(order);
     }
 }

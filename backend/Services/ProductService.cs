@@ -11,23 +11,27 @@ public class ProductService : IProductService
     private readonly IUserRepository _userRepository;
     private readonly IFavoriteRepository _favoriteRepository;
     private readonly IAuctionRepository _auctionRepository;
+    private readonly IReviewRepository _reviewRepository;
 
     public ProductService(
-        IProductRepository productRepository, 
+        IProductRepository productRepository,
         IUserRepository userRepository,
         IFavoriteRepository favoriteRepository,
-        IAuctionRepository auctionRepository)
+        IAuctionRepository auctionRepository,
+        IReviewRepository reviewRepository)
     {
         _productRepository = productRepository;
         _userRepository = userRepository;
         _favoriteRepository = favoriteRepository;
         _auctionRepository = auctionRepository;
+        _reviewRepository = reviewRepository;
     }
 
-    public async Task<PagedResult<ProductResponseDto>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? userId)
+    public async Task<PagedResult<ProductResponseDto>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? userId, bool sellerOnly = false)
     {
-        var products = await _productRepository.GetProductsAsync(category, search, city, sort, page, limit);
-        var totalCount = await _productRepository.GetTotalCountAsync(category, search, city);
+        long? sellerId = sellerOnly ? userId : null;
+        var products = await _productRepository.GetProductsAsync(category, search, city, sort, page, limit, sellerId);
+        var totalCount = await _productRepository.GetTotalCountAsync(category, search, city, sellerId);
 
         var dtos = new List<ProductResponseDto>();
         foreach (var p in products)
@@ -54,8 +58,21 @@ public class ProductService : IProductService
 
         var seller = await _userRepository.GetByIdAsync(product.seller_id);
         var isFavorite = userId.HasValue && await _favoriteRepository.IsFavoriteAsync(userId.Value, product.id);
-        
-        return MapToDto(product, seller?.username ?? "Unknown", isFavorite);
+        var dto = MapToDto(product, seller?.username ?? "Unknown", isFavorite);
+
+        if (userId.HasValue && userId.Value != product.seller_id)
+        {
+            dto.can_review = await _reviewRepository.HasPurchasedAsync(userId.Value, product.id);
+            var existing = await _reviewRepository.GetByUserAndProductAsync(userId.Value, product.id);
+            if (existing != null)
+            {
+                var imgs = JsonSerializer.Deserialize<List<string>>(existing.images) ?? [];
+                dto.user_review = new { existing.id, existing.rating, existing.text, images = imgs };
+                dto.can_review = true;
+            }
+        }
+
+        return dto;
     }
 
     public async Task<long> CreateProductAsync(CreateProductDto dto)
@@ -80,6 +97,52 @@ public class ProductService : IProductService
 
         await _productRepository.AddAsync(product);
         return product.id;
+    }
+
+    public async Task UpdateProductAsync(long id, CreateProductDto dto)
+    {
+        var product = await _productRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Товар не найден");
+
+        product.title = dto.title;
+        product.description = dto.description;
+        product.category_id = dto.category_id;
+        product.price = dto.price;
+        product.city = dto.city;
+        product.condition = dto.condition;
+        if (dto.details?.ValueKind != JsonValueKind.Undefined)
+            product.details = dto.details?.GetRawText() ?? product.details;
+        if (dto.images?.ValueKind != JsonValueKind.Undefined)
+            product.images = dto.images?.GetRawText() ?? product.images;
+
+        await _productRepository.UpdateAsync(product);
+    }
+
+    public async Task DeleteProductAsync(long id)
+    {
+        await _productRepository.DeleteAsync(id);
+    }
+
+    public async Task AppendImagesAsync(long id, List<string> urls)
+    {
+        var product = await _productRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Товар не найден");
+
+        var existing = JsonSerializer.Deserialize<List<string>>(product.images ?? "[]") ?? [];
+        existing.AddRange(urls);
+        product.images = JsonSerializer.Serialize(existing);
+        await _productRepository.UpdateAsync(product);
+    }
+
+    public async Task RemoveImageAsync(long id, string url)
+    {
+        var product = await _productRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Товар не найден");
+
+        var existing = JsonSerializer.Deserialize<List<string>>(product.images ?? "[]") ?? [];
+        existing.Remove(url);
+        product.images = JsonSerializer.Serialize(existing);
+        await _productRepository.UpdateAsync(product);
     }
 
     public async Task IncrementViewsAsync(long id, long? userId)

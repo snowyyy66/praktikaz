@@ -28,7 +28,7 @@ export default function AdminPage() {
       return;
     }
     api.getAdminProducts(getUserId())
-      .then(setProducts)
+      .then(data => setProducts(Array.isArray(data) ? data : (data.items ?? [])))
       .catch((err) => alert(err.message || 'Ошибка загрузки админки'))
       .finally(() => setLoading(false));
   }, []);

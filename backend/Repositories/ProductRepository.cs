@@ -13,7 +13,7 @@ public class ProductRepository : IProductRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Product>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit)
+    public async Task<IEnumerable<Product>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? sellerId = null)
     {
         var query = _context.Products.AsQueryable();
 
@@ -55,6 +55,9 @@ public class ProductRepository : IProductRepository
         }
 
         query = query.Where(p => p.is_active > 0);
+
+        if (sellerId.HasValue)
+            query = query.Where(p => p.seller_id == sellerId.Value);
 
         // Сортировка
         query = sort switch
@@ -99,7 +102,7 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    public async Task<int> GetTotalCountAsync(string? category, string? search, string? city)
+    public async Task<int> GetTotalCountAsync(string? category, string? search, string? city, long? sellerId = null)
     {
         var query = _context.Products.AsQueryable();
         
@@ -135,6 +138,9 @@ public class ProductRepository : IProductRepository
             var lc = city.ToLower();
             query = query.Where(p => p.city != null && p.city.ToLower().Contains(lc));
         }
+
+        if (sellerId.HasValue)
+            query = query.Where(p => p.seller_id == sellerId.Value);
 
         return await query.CountAsync(p => p.is_active > 0);
     }

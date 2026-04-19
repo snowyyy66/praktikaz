@@ -298,7 +298,9 @@ export default function ProductPage() {
 
     setBuying(true);
     try {
+      const total = isRentProd ? product.price * rentHours : product.price;
       const payload = {
+        total,
         rent_hours: isRentProd ? rentHours : undefined,
         appointment_date: isService ? buyForm.date : undefined,
         appointment_time: isService ? buyForm.time : undefined,
@@ -775,7 +777,7 @@ export default function ProductPage() {
       )}
 
       {/* Persistent/Editable Review Form */}
-      {((product.can_review && !product.user_review) || isEditingReview || bought) && !reviewSubmitted && (
+      {((product.can_review && !product.user_review && !isEditingReview) || isEditingReview) && !reviewSubmitted && (
         <div className="review-form-container" ref={reviewFormRef}>
           <form className="review-form" onSubmit={handleReviewSubmit}>
             <h3>{isEditingReview ? 'Редактировать отзыв' : 'Оставить отзыв'}</h3>

@@ -14,18 +14,19 @@ public class GlobalExceptionHandler : IExceptionHandler
 
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
-        _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
-
-        var problemDetails = new ProblemDetails
+        var status = exception switch
         {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Server Error",
-            Detail = exception.Message
+            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            KeyNotFoundException => StatusCodes.Status404NotFound,
+            ArgumentException => StatusCodes.Status400BadRequest,
+            _ => StatusCodes.Status500InternalServerError
         };
 
-        httpContext.Response.StatusCode = problemDetails.Status.Value;
+        if (status == StatusCodes.Status500InternalServerError)
+            _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
 
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        httpContext.Response.StatusCode = status;
+        await httpContext.Response.WriteAsJsonAsync(new { error = exception.Message }, cancellationToken);
 
         return true;
     }

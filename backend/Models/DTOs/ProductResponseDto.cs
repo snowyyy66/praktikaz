@@ -18,4 +18,7 @@ public class ProductResponseDto
     public object details { get; set; } = new { };
     public object images { get; set; } = new string[] { };
     public string sale_type { get; set; } = "fixed";
+    public bool show_reviews_on_page { get; set; } = true;
+    public bool can_review { get; set; }
+    public object? user_review { get; set; }
 }

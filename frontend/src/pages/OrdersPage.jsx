@@ -13,7 +13,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     api.getUserOrders(getUserId())
-      .then(data => setOrders(data))
+      .then(data => setOrders(Array.isArray(data) ? data : (data.items ?? [])))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, []);

@@ -3,50 +3,58 @@ using Backend.Middleware;
 using Backend.Repositories;
 using Backend.Services;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using System.Text.Json;
 
 namespace Backend;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
         builder.Services.AddControllers()
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             });
-            
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
-        
+
+        builder.Services.AddOpenApi();
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAll",
                 b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
         });
 
-        // Add EF Core DbContext
+        // EF Core DbContext
         var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "marketplace.db");
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite($"Data Source={dbPath};Cache=Shared"));
 
-        // Register Database service (legacy compatibility)
+        // Legacy Dapper service (используется только ProductService до полного рефакторинга)
         builder.Services.AddSingleton<DbService>();
 
-        // Register Repositories
+        // Repositories
         builder.Services.AddScoped<IProductRepository, ProductRepository>();
         builder.Services.AddScoped<IOrderRepository, OrderRepository>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
         builder.Services.AddScoped<IAuctionRepository, AuctionRepository>();
+        builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+        builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
+        builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
-        // Register Services
+        // Services
         builder.Services.AddScoped<IProductService, ProductService>();
         builder.Services.AddScoped<IOrderService, OrderService>();
+        builder.Services.AddScoped<IAuthService, AuthService>();
+        builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IReviewService, ReviewService>();
+        builder.Services.AddScoped<IConversationService, ConversationService>();
+        builder.Services.AddScoped<ISearchService, SearchService>();
+        builder.Services.AddScoped<ICategoryService, CategoryService>();
 
         // Global Exception Handler
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -54,20 +62,25 @@ public class Program
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
+        using (var scope = app.Services.CreateScope())
         {
-            app.UseSwagger();
-            app.UseSwaggerUI();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
+            await SeedData.SeedAsync(db);
         }
 
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+
+        app.UseMiddleware<RequestLoggingMiddleware>();
         app.UseExceptionHandler();
         app.UseCors("AllowAll");
-        
+
+        var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+        Directory.CreateDirectory(uploadsPath);
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
-                Path.Combine(builder.Environment.ContentRootPath, "uploads")),
+            FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
             RequestPath = "/uploads",
             OnPrepareResponse = ctx =>
             {
@@ -78,7 +91,6 @@ public class Program
         app.UseAuthorization();
         app.MapControllers();
 
-        // Start on port 3000 to match old server
         app.Run("http://localhost:3000");
     }
 }

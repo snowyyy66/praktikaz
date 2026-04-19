@@ -10,10 +10,12 @@ namespace Backend.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
+    private readonly IWebHostEnvironment _env;
 
-    public ProductsController(IProductService productService)
+    public ProductsController(IProductService productService, IWebHostEnvironment env)
     {
         _productService = productService;
+        _env = env;
     }
 
     [HttpGet]
@@ -45,7 +47,56 @@ public class ProductsController : ControllerBase
             return BadRequest(new { error = "Title is required" });
 
         var id = await _productService.CreateProductAsync(dto);
-        return Ok(new { success = true, id });
+        return StatusCode(201, new { success = true, id });
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProduct(long id, [FromBody] CreateProductDto dto)
+    {
+        await _productService.UpdateProductAsync(id, dto);
+        return Ok(new { success = true });
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProduct(long id)
+    {
+        await _productService.DeleteProductAsync(id);
+        return Ok(new { success = true });
+    }
+
+    [HttpPost("{id}/images")]
+    public async Task<IActionResult> UploadImages(long id, [FromForm] IFormFileCollection images)
+    {
+        var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads", "products");
+        Directory.CreateDirectory(uploadsDir);
+
+        var saved = new List<string>();
+        foreach (var file in images)
+        {
+            if (file.Length == 0) continue;
+            var ext = Path.GetExtension(file.FileName);
+            var name = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{Guid.NewGuid():N}{ext}";
+            var path = Path.Combine(uploadsDir, name);
+            await using var stream = System.IO.File.Create(path);
+            await file.CopyToAsync(stream);
+            saved.Add($"/uploads/products/{name}");
+        }
+
+        await _productService.AppendImagesAsync(id, saved);
+        return Ok(new { images = saved });
+    }
+
+    [HttpDelete("{id}/images")]
+    public async Task<IActionResult> DeleteImage(long id, [FromBody] JsonElement req)
+    {
+        var imageUrl = req.GetProperty("image_url").GetString() ?? "";
+        await _productService.RemoveImageAsync(id, imageUrl);
+
+        var filePath = Path.Combine(_env.ContentRootPath, imageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        if (System.IO.File.Exists(filePath))
+            System.IO.File.Delete(filePath);
+
+        return Ok(new { success = true });
     }
 
     [HttpPost("{id}/views")]
@@ -60,6 +111,17 @@ public class ProductsController : ControllerBase
     {
         await _productService.LikeProductAsync(id);
         return Ok(new { success = true });
+    }
+
+    [HttpGet("my")]
+    public async Task<IActionResult> GetMyProducts(
+        [FromQuery] long user_id,
+        [FromQuery] int page = 1,
+        [FromQuery] int limit = 24)
+    {
+        if (user_id <= 0) return BadRequest(new { error = "Укажите user_id" });
+        var result = await _productService.GetProductsAsync(null, null, null, null, page, limit, user_id,  sellerOnly: true);
+        return Ok(result);
     }
 
     [HttpGet("{id}/bids")]
