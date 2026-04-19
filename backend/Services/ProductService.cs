@@ -27,11 +27,11 @@ public class ProductService : IProductService
         _reviewRepository = reviewRepository;
     }
 
-    public async Task<PagedResult<ProductResponseDto>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? userId, bool sellerOnly = false)
+    public async Task<PagedResult<ProductResponseDto>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? userId, bool sellerOnly = false, bool auctionOnly = false)
     {
         long? sellerId = sellerOnly ? userId : null;
-        var products = await _productRepository.GetProductsAsync(category, search, city, sort, page, limit, sellerId);
-        var totalCount = await _productRepository.GetTotalCountAsync(category, search, city, sellerId);
+        var products = await _productRepository.GetProductsAsync(category, search, city, sort, page, limit, sellerId, auctionOnly);
+        var totalCount = await _productRepository.GetTotalCountAsync(category, search, city, sellerId, auctionOnly);
 
         var dtos = new List<ProductResponseDto>();
         foreach (var p in products)

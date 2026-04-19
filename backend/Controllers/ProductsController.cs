@@ -24,11 +24,12 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sort, 
         [FromQuery] string? search, 
         [FromQuery] string? city, 
+        [FromQuery] string? auction,
         [FromQuery] long? user_id,
         [FromQuery] int page = 1, 
         [FromQuery] int limit = 24)
     {
-        var result = await _productService.GetProductsAsync(category, search, city, sort, page, limit, user_id);
+        var result = await _productService.GetProductsAsync(category, search, city, sort, page, limit, user_id, false, auction == "1");
         return Ok(result);
     }
 

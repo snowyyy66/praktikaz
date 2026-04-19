@@ -13,7 +13,7 @@ public class ProductRepository : IProductRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Product>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? sellerId = null)
+    public async Task<IEnumerable<Product>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? sellerId = null, bool auctionOnly = false)
     {
         var query = _context.Products.AsQueryable();
 
@@ -59,6 +59,9 @@ public class ProductRepository : IProductRepository
         if (sellerId.HasValue)
             query = query.Where(p => p.seller_id == sellerId.Value);
 
+        if (auctionOnly)
+            query = query.Where(p => p.sale_type == "auction");
+
         // Сортировка
         query = sort switch
         {
@@ -102,7 +105,7 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    public async Task<int> GetTotalCountAsync(string? category, string? search, string? city, long? sellerId = null)
+    public async Task<int> GetTotalCountAsync(string? category, string? search, string? city, long? sellerId = null, bool auctionOnly = false)
     {
         var query = _context.Products.AsQueryable();
         
@@ -141,6 +144,9 @@ public class ProductRepository : IProductRepository
 
         if (sellerId.HasValue)
             query = query.Where(p => p.seller_id == sellerId.Value);
+
+        if (auctionOnly)
+            query = query.Where(p => p.sale_type == "auction");
 
         return await query.CountAsync(p => p.is_active > 0);
     }

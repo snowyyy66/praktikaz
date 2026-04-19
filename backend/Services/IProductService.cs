@@ -5,7 +5,7 @@ namespace Backend.Services;
 
 public interface IProductService
 {
-    Task<PagedResult<ProductResponseDto>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? userId, bool sellerOnly = false);
+    Task<PagedResult<ProductResponseDto>> GetProductsAsync(string? category, string? search, string? city, string? sort, int page, int limit, long? userId, bool sellerOnly = false, bool auctionOnly = false);
     Task<ProductResponseDto?> GetProductByIdAsync(long id, long? userId);
     Task<long> CreateProductAsync(CreateProductDto dto);
     Task UpdateProductAsync(long id, CreateProductDto dto);

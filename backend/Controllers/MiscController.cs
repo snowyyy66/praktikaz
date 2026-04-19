@@ -30,7 +30,7 @@ public class MiscController : ControllerBase
             return BadRequest(new { error = "Некорректные данные" });
 
         var added = await _favoriteRepository.ToggleAsync(req.user_id, req.product_id);
-        return Ok(new { added });
+        return Ok(new { favorited = added });
     }
 
     [HttpPut("notifications/{id}/read")]
