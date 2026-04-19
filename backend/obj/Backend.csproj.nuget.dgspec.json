@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "E:\\projects\\praktikaz\\backend\\Backend.csproj": {}
+    "F:\\git\\praktika\\backend\\Backend.csproj": {}
   },
   "projects": {
-    "E:\\projects\\praktikaz\\backend\\Backend.csproj": {
+    "F:\\git\\praktika\\backend\\Backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\projects\\praktikaz\\backend\\Backend.csproj",
+        "projectUniqueName": "F:\\git\\praktika\\backend\\Backend.csproj",
         "projectName": "Backend",
-        "projectPath": "E:\\projects\\praktikaz\\backend\\Backend.csproj",
-        "packagesPath": "C:\\Users\\LooK\\.nuget\\packages\\",
-        "outputPath": "E:\\projects\\praktikaz\\backend\\obj\\",
+        "projectPath": "F:\\git\\praktika\\backend\\Backend.csproj",
+        "packagesPath": "C:\\Users\\snowy\\.nuget\\packages\\",
+        "outputPath": "F:\\git\\praktika\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\LooK\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\snowy\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -38,7 +38,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -94,7 +94,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.202/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
