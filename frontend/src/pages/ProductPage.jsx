@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles, X, Camera, Edit3 } from 'lucide-react';
 import { api, getUserId } from '../api';
@@ -66,6 +66,31 @@ const FloorPlanC = () => (
     <text x="120" y="205" textAnchor="middle" fill="var(--text-primary)" fontSize="12">Лоджия панорамная</text>
   </svg>
 );
+
+const formatAuctionEnds = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleString('ru-RU', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+};
+
+const msLeft = (dateStr) => {
+  if (!dateStr) return 0;
+  const diff = new Date(dateStr).getTime() - Date.now();
+  return Math.max(0, diff);
+};
+
+const formatCountdown = (ms) => {
+  if (ms <= 0) return 'Окончен';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${h}:${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
+};
 
 /**
  * Компонент ProductPage (Страница объявления)
@@ -526,56 +551,6 @@ export default function ProductPage() {
                   <span>До конца: <strong>{formatCountdown(msLeft(product.auction_ends_at))}</strong></span>
                 </div>
               )}
-              {isAuction && live && isSeller && (
-                <p className="auction-seller-hint">Идут торги. Следующая мин. ставка: <strong>{(product.auction_min_next_bid ?? product.price).toLocaleString('ru-RU')} ₽</strong></p>
-              )}
-              {isAuction && live && !isSeller && uid && (
-                <form className="bid-form" onSubmit={handlePlaceBid}>
-                  <label className="bid-label">Ваша ставка (мин. {(product.auction_min_next_bid ?? product.price).toLocaleString('ru-RU')} ₽)</label>
-                  <div className="bid-row">
-                    <input
-                      type="number"
-                      className="bid-input"
-                      value={bidAmount}
-                      onChange={e => { setBidAmount(e.target.value); setBidError(''); }}
-                      placeholder={(product.auction_min_next_bid ?? product.price).toString()}
-                      min={product.auction_min_next_bid ?? product.price}
-                    />
-                    <button type="submit" className="btn-bid" disabled={bidLoading}>
-                      <Gavel size={16} />
-                      {bidLoading ? '…' : 'Ставка'}
-                    </button>
-                  </div>
-                  {bidError && <p className="bid-error">{bidError}</p>}
-                </form>
-              )}
-              {isAuction && live && !uid && (
-                <p className="auction-seller-hint">Войдите, чтобы сделать ставку</p>
-              )}
-              {isAuction && ended && highBid && (
-                <p className="auction-ended-msg">
-                  Торги окончены. Лидер: <strong>{product.auction_leader_name || '—'}</strong> ({highBid.toLocaleString('ru-RU')} ₽)
-                </p>
-              )}
-              {isAuction && ended && !highBid && (
-                <p className="auction-ended-msg">Торги окончены, ставок не было.</p>
-              )}
-              {product.is_sold ? (
-                <div className="btn-sold-badge-large">
-                  <X size={18} />
-                  ПРОДАНО
-                </div>
-              ) : bought ? (
-                <div className="btn-bought">
-                  <CheckCircle size={16} />
-                  {isRent ? `Аренда на ${rentHours} ч. оформлена` : (isServices ? 'Слот забронирован' : 'Куплено! Перейти в Сделки')}
-                </div>
-              ) : isAuction && live ? (
-                <div className="auction-live-banner">
-                  <Clock size={16} />
-                  <span>До конца: <strong>{formatCountdown(msLeft(product.auction_ends_at))}</strong></span>
-                </div>
-              ) : null}
               {isAuction && live && isSeller && (
                 <p className="auction-seller-hint">Идут торги. Следующая мин. ставка: <strong>{(product.auction_min_next_bid ?? product.price).toLocaleString('ru-RU')} ₽</strong></p>
               )}

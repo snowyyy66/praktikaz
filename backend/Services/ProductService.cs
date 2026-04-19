@@ -38,7 +38,7 @@ public class ProductService : IProductService
         {
             var seller = await _userRepository.GetByIdAsync(p.seller_id);
             var isFavorite = userId.HasValue && await _favoriteRepository.IsFavoriteAsync(userId.Value, p.id);
-            dtos.Add(MapToDto(p, seller?.username ?? "Unknown", isFavorite));
+            dtos.Add(MapToDto(p, seller, isFavorite));
         }
 
         return new PagedResult<ProductResponseDto>
@@ -58,7 +58,7 @@ public class ProductService : IProductService
 
         var seller = await _userRepository.GetByIdAsync(product.seller_id);
         var isFavorite = userId.HasValue && await _favoriteRepository.IsFavoriteAsync(userId.Value, product.id);
-        var dto = MapToDto(product, seller?.username ?? "Unknown", isFavorite);
+        var dto = MapToDto(product, seller, isFavorite);
 
         // Fill auction bid stats
         if (product.sale_type == "auction")
@@ -205,7 +205,7 @@ public class ProductService : IProductService
         await _auctionRepository.AddBidAsync(bid);
     }
 
-    private ProductResponseDto MapToDto(Product p, string sellerName, bool isFavorite)
+    private ProductResponseDto MapToDto(Product p, User? seller, bool isFavorite)
     {
         object detailsObj = new { };
         object imagesObj = new string[] { };
@@ -246,7 +246,12 @@ public class ProductService : IProductService
             views = p.views,
             likes = p.likes,
             seller_id = p.seller_id,
-            seller_name = sellerName,
+            seller_name = seller?.username ?? "Unknown",
+            seller_avatar = seller?.avatar,
+            seller_rating = seller?.rating ?? 0,
+            seller_city = seller?.city,
+            seller_phone = seller?.phone,
+            seller_total_sales = seller?.total_sales ?? 0,
             created_at = p.created_at,
             is_favorite = isFavorite,
             details = detailsObj,

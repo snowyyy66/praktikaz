@@ -13,6 +13,11 @@ public class ProductResponseDto
     public long likes { get; set; }
     public long seller_id { get; set; }
     public string seller_name { get; set; } = "";
+    public string? seller_avatar { get; set; }
+    public double seller_rating { get; set; }
+    public string? seller_city { get; set; }
+    public string? seller_phone { get; set; }
+    public long seller_total_sales { get; set; }
     public string created_at { get; set; } = "";
     public bool is_favorite { get; set; }
     public object details { get; set; } = new { };
