@@ -15,5 +15,5 @@ public interface IProductService
     Task IncrementViewsAsync(long id, long? userId);
     Task LikeProductAsync(long id);
     Task<IEnumerable<dynamic>> GetBidsAsync(long id);
-    Task PlaceBidAsync(long id, long bidderId, long amount);
+    Task<long> PlaceBidAsync(long id, long bidderId, long amount);
 }

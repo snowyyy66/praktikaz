@@ -193,7 +193,7 @@ public class ProductService : IProductService
         return await _auctionRepository.GetBidsAsync(id);
     }
 
-    public async Task PlaceBidAsync(long id, long bidderId, long amount)
+    public async Task<long> PlaceBidAsync(long id, long bidderId, long amount)
     {
         var bid = new AuctionBid
         {
@@ -203,6 +203,9 @@ public class ProductService : IProductService
             created_at = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
         };
         await _auctionRepository.AddBidAsync(bid);
+
+        var product = await _productRepository.GetByIdAsync(id);
+        return amount + (product?.auction_step ?? 0);
     }
 
     private ProductResponseDto MapToDto(Product p, User? seller, bool isFavorite)

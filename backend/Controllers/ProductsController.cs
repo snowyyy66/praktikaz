@@ -137,7 +137,7 @@ public class ProductsController : ControllerBase
     {
         long bidderId = req.GetProperty("bidder_id").GetInt64();
         long amount = req.GetProperty("amount").GetInt64();
-        await _productService.PlaceBidAsync(id, bidderId, amount);
-        return Ok(new { success = true });
+        var nextMin = await _productService.PlaceBidAsync(id, bidderId, amount);
+        return Ok(new { success = true, auction_min_next_bid = nextMin });
     }
 }

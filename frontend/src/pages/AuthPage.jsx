@@ -85,7 +85,11 @@ export default function AuthPage({ onLogin }) {
 
         <div className="auth-footer">
           {isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}
-          <button type="button" className="btn-link" onClick={() => setIsLogin(!isLogin)}>
+          <button type="button" className="btn-link" onClick={() => {
+            setIsLogin(!isLogin);
+            setError('');
+            setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+          }}>
              {isLogin ? 'Зарегистрироваться' : 'Войти'}
           </button>
         </div>
