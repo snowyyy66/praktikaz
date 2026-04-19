@@ -169,10 +169,29 @@ export const api = {
       });
   },
 
-  /** Отзывы к товару */
-  getProductReviews: (productId) => fetchApi(`/products/${productId}/reviews`),
-  /** Оставить отзыв (после покупки) */
+  /** Отзывы к товару (показываются на странице товара, если это услуги) */
+  getProductReviews: (productId) => fetchApi(`/reviews?product_id=${productId}`),
+  /** Проверить, можно ли оставить/изменить отзыв (был ли заказ) */
+  checkReview: (userId, productId) => fetchApi(`/reviews/check?user_id=${userId}&product_id=${productId}`),
+  /** Оставить отзыв (после покупки или на услуги) */
   createReview: (data) => fetchApi('/reviews', { method: 'POST', body: JSON.stringify(data) }),
+  /** Изменить свой отзыв */
+  updateReview: (id, data) => fetchApi(`/reviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  /** Загрузить медиа для отзыва (параллельно загрузке фото в объявлении) */
+  uploadReviewMedia: async (files) => {
+    const fd = new FormData();
+    for (const f of files) fd.append('images', f);
+    const res = await fetch(`http://localhost:3000/api/reviews/upload`, { method: 'POST', body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+    return data;
+  },
+  /** Все отзывы о продавце (для профиля) */
+  getUserReviews: (userId) => fetchApi(`/reviews/seller/${userId}`),
+  /** Альянс для совместимости с ProfilePage */
+  getUserReviewsList: (userId) => fetchApi(`/reviews/seller/${userId}`),
+  /** Все отзывы, оставленные этим пользователем */
+  getReviewsByReviewer: (userId) => fetchApi(`/reviews/reviewer/${userId}`),
 
   /** Список диалогов пользователя */
   getConversations: (userId) => fetchApi(`/conversations?user_id=${userId}`),

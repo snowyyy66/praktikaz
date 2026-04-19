@@ -107,6 +107,7 @@ public class Review
     public long product_id { get; set; }
     public long rating { get; set; }
     public string text { get; set; } = "";
+    public string images { get; set; } = "[]"; // Новое поле для фото/видео в отзывах
     public string created_at { get; set; } = "";
 }
 

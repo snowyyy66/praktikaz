@@ -12,7 +12,9 @@ function PublicProfilePage() {
   const [profileUser, setProfileUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [purchasedProducts, setPurchasedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const currentUserId = api.getUserId();
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -20,10 +22,11 @@ function PublicProfilePage() {
         setLoading(true);
         // Запрашиваем информацию профиля из API
         
-        const [userRes, productsRes, reviewsRes] = await Promise.all([
+        const [userRes, productsRes, reviewsRes, ordersRes] = await Promise.all([
           api.getUser(id).catch(() => null),
           api.getUserProducts(id).catch(() => []),
-          api.getUserReviews(id).catch(() => [])
+          api.getUserReviews(id).catch(() => []),
+          currentUserId ? api.getUserOrders(currentUserId).catch(() => []) : Promise.resolve([])
         ]);
 
         if (userRes) {
@@ -38,6 +41,25 @@ function PublicProfilePage() {
 
         if (reviewsRes && Array.isArray(reviewsRes)) {
             setReviews(reviewsRes);
+        }
+
+        if (ordersRes && Array.isArray(ordersRes)) {
+            // Фильтруем заказы, купленные у этого продавца
+            const results = ordersRes.filter(o => String(o.seller_id) === String(id) && String(o.buyer_id) === String(currentUserId));
+            // Исключаем те, на которые уже есть отзыв (упрощенно: проверяем по reviewsRes)
+            const reviewedProductIds = new Set(reviewsRes.filter(r => String(r.reviewer_id) === String(currentUserId)).map(r => r.product_id));
+            const reviewable = results.filter(o => !reviewedProductIds.has(o.product_id));
+            
+            // Группируем по уникальным товарам
+            const uniqueReviewable = [];
+            const seenIds = new Set();
+            for(const item of reviewable) {
+               if(!seenIds.has(item.product_id)) {
+                  seenIds.add(item.product_id);
+                  uniqueReviewable.push(item);
+               }
+            }
+            setPurchasedProducts(uniqueReviewable);
         }
 
       } catch (error) {
@@ -138,6 +160,29 @@ function PublicProfilePage() {
           )}
         </div>
 
+        </div>
+
+        {purchasedProducts.length > 0 && (
+          <div className="pending-reviews-card animate-slide-up">
+            <div className="pending-header">
+              <Star size={24} className="star-icon-premium" />
+              <div>
+                <h3>Оцените ваши покупки</h3>
+                <p>Вы купили у этого продавца {purchasedProducts.length === 1 ? 'товар' : 'товары'}. Поделитесь впечатлениями!</p>
+              </div>
+            </div>
+            <div className="pending-products-list">
+              {purchasedProducts.map(p => (
+                <div key={p.product_id} className="pending-product-item" onClick={() => navigate(`/product/${p.product_id}`)}>
+                   <Package size={20} />
+                   <span>{p.product_title}</span>
+                   <button className="btn-review-now">Оставить отзыв</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="profile-reviews-section">
           <h2>Отзывы о продавце</h2>
           {reviews.length === 0 ? (
@@ -158,6 +203,18 @@ function PublicProfilePage() {
                      <span className="review-date">{new Date(review.created_at).toLocaleDateString()}</span>
                   </div>
                   <p className="review-text">{review.text}</p>
+                  {review.images && review.images.length > 0 && (
+                    <div className="review-media-preview" style={{ display: 'flex', gap: '8px', marginTop: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+                      {review.images.map((img, i) => (
+                        <div key={i} className="rev-media-box" style={{ width: '80px', height: '80px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', border: '1px solid #eee' }}>
+                          {img.match(/\.(mp4|mov)$/i)
+                            ? <video src={`http://localhost:3000${img}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <img src={`http://localhost:3000${img}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          }
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

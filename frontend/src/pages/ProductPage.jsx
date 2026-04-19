@@ -1,103 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles, X, Camera, Edit3 } from 'lucide-react';
 import { api, getUserId } from '../api';
 import './ProductPage.css';
 
-function formatAuctionEnds(iso) {
-  if (!iso) return '';
-  const s = String(iso).includes('T') ? String(iso) : String(iso).replace(' ', 'T');
-  return new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
-}
-
-function msLeft(endsAt) {
-  if (!endsAt) return 0;
-  const s = String(endsAt).includes('T') ? String(endsAt) : String(endsAt).replace(' ', 'T');
-  return Math.max(0, new Date(s).getTime() - Date.now());
-}
-
-function formatCountdown(ms) {
-  if (ms <= 0) return '0:00:00';
-  const sec = Math.floor(ms / 1000);
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-const getSeed = (id) => {
-  if (!id) return 0;
-  const s = String(id);
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) {
-    hash = (hash << 5) - hash + s.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-};
-
-const pick = (arr, seed, offset = 0) => arr[(seed + offset) % arr.length];
-
-const VARIATIONS = {
-  transport: {
-    engines: [
-      "3.0L V6 Turbo (340 л.с.)", "2.0L I4 Twin-Scroll", "4.4L V8 Bi-Turbo", 
-      "Electric Dual Motor 400V", "Hybrid Efficiency 2.5", "5.0L Supercharged", 
-      "Linear EV Motor 600hp", "Diesel V6 BlueTec", "Boxer 4-cyl Turbo", "1.5L I3 Hybrid"
-    ],
-    histories: [
-      "1 владелец, без ДТП", "Обслуживание в Евросиб", "Заводской окрас (керамика)", 
-      "Только гаражное хранение", "Прозрачная история (Автотека OK)", 
-      "Пригнан из Германии", "Обслужен в профильном сервисе", "Полная история у дилера",
-      "Второй владелец, ухожен", "Без окрасов и вложений"
-    ],
-    conditions: [
-      "Идеальное (AA+)", "Коллекционное", "Как новый", "Отличное", "Без единого скола",
-      "Хорошее состояние", "Мелкие следы эксплуатации", "После детейлинга", "Обслужен", "Сел-поехал"
-    ],
-    transmissions: [
-      "Автомат 8-ступ.", "Робот DCT", "Механика 6-ст.", "Прямой привод (EV)", 
-      "Вариатор (Sportive)", "АКПП ZF 9-speed", "Секвентальная КПП"
-    ],
-    drives: ["Полный (AWD)", "Задний (RWD)", "Передний (FWD)", "Интеллектуальный 4WD", "Quattro Ultra"],
-    fuels: ["Бензин АИ-98", "Дизель Turbo", "Электро (Li-ion)", "Гибрид (PHEV)", "Бензин АИ-100"]
-  },
-  clothing: {
-    materials: [
-      "100% Хлопок (Supima Cotton)", "Плотный селвидж-деним 14.5oz", "Натуральная кожа Nappa", 
-      "Шерсть мериноса Extra Fine", "Технологичный Gore-Tex Pro", "Премиальный шелк",
-      "Лен с вискозой", "Переработанный полиэстер", "Органический хлопок", "Кашемир 100%"
-    ],
-    fits: ["Oversized Fit (Boxy)", "Relaxed Silhouette", "Classic Regular", "Slim Athletic Cut", "Modern Tailored", "Wide Leg", "Tapered Cut"],
-    care: [
-      "Ручная стирка 30°C", "Химчистка рекомендуется", "Машинная стирка (деликатно)", 
-      "Не сушить в машине", "Стирка с изнанки", "Глажка при низкой температуре", "Только сухая чистка"
-    ],
-    origins: ["Италия", "Япония", "США", "Португалия", "Франция", "Южная Корея", "Великобритания"]
-  },
-  items: {
-    packages: [
-      "Полный комплект (Full Box)", "Устройство + доп. чехол", "Запечатанный заводской стикер", 
-      "В комплекте с чеком и РСТ", "Premium Edition (Bundle)", "Без коробки", "С кабелями и инструкцией"
-    ],
-    warranties: [
-      "24 месяца (официальная)", "12 месяцев от магазина", "6 месяцев гарантии", 
-      "Пожизненный сервис", "Замена за 24ч (VIP)", "Без гарантии", "Гарантия маркетплейса"
-    ],
-    materials_item: ["Алюминий авиационный", "Углеволокно (Carbon)", "Матовый ударопрочный пластик", "Закаленное стекло Gorilla", "Нержавеющая сталь", "Эко-полимер"]
-  },
-  services: {
-    speeds: [
-      "Приезд за 20-40 мин", "В день обращения", "Запись на удобное время", 
-      "Срочно (реакция 15 мин)", "По госту (смена 8ч)", "Индивидуальный график"
-    ],
-    guarantees: [
-      "Договор + акт работ", "Гарантия по закону РФ", "100% возврат если не вышло", 
-      "Страхование ответственности", "Гарантия на детали 2 года", "Безлимитные правки"
-    ],
-    tools: ["Проф. оборудование", "Собственный инструмент", "Инструментарий Hilti", "Лицензионное ПО", "Спецтехника в наличии"]
-  }
-};
+// Удалены константы VARIATIONS и функции mocking (pick, getSeed), так как логика перенесена на бэкенд.
 
 const FloorPlanA = () => (
   <svg viewBox="0 0 400 240" className="floor-plan-svg" aria-hidden>
@@ -175,9 +82,11 @@ export default function ProductPage() {
   const [buying, setBuying] = useState(false);
   const [bought, setBought] = useState(false);
   const [reviews, setReviews] = useState([]);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, text: '' });
+  const [reviewForm, setReviewForm] = useState({ rating: 5, text: '', images: [] });
+  const [reviewPhotos, setReviewPhotos] = useState([]);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [isEditingReview, setIsEditingReview] = useState(false);
   const [bidRows, setBidRows] = useState([]);
   const [bidAmount, setBidAmount] = useState('');
   const [bidLoading, setBidLoading] = useState(false);
@@ -193,6 +102,9 @@ export default function ProductPage() {
   const [buyError, setBuyError] = useState('');
   const [fullSlots, setFullSlots] = useState([]);
   const [checkingSlots, setCheckingSlots] = useState(false);
+  const reviewFormRef = useRef(null);
+
+  const uid = getUserId();
 
   const refreshProduct = useCallback(() => {
     return api.getProduct(id).then(data => { setProduct(data); return data; }).catch(err => console.error(err));
@@ -210,7 +122,18 @@ export default function ProductPage() {
 
     setLoading(true);
     Promise.all([api.getProduct(id), api.getProductReviews(id)])
-      .then(([data, revs]) => { setProduct(data); setReviews(revs); })
+      .then(([data, revs]) => { 
+        setProduct(data); 
+        setReviews(revs);
+        if (data.user_review) {
+          setReviewForm({ 
+            rating: data.user_review.rating, 
+            text: data.user_review.text, 
+            images: data.user_review.images || [] 
+          });
+          setIsEditingReview(true);
+        }
+      })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [id]);
@@ -256,11 +179,63 @@ export default function ProductPage() {
     setRentHours(minH);
   }, [product?.id, product?.category_id, product?.details]);
 
+  const REVIEW_MAX_FILES = 10;
+  const REVIEW_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  const [reviewPhotoError, setReviewPhotoError] = useState('');
+
+  const handleReviewPhotos = (e) => {
+    const files = Array.from(e.target.files);
+    const valid = [];
+    const errors = [];
+    for (const f of files) {
+      const isVideo = f.type?.startsWith('video/mp4') || f.type?.startsWith('video/quicktime');
+      const isImg = f.type === 'image/jpeg' || f.type === 'image/png' || f.type === 'image/gif';
+      if (!isImg && !isVideo) { errors.push(`${f.name}: формат не поддерживается (jpg, png, gif, mp4, mov)`); continue; }
+      if (f.size > REVIEW_MAX_FILE_SIZE) { errors.push(`${f.name}: больше 50MB`); continue; }
+      valid.push({ file: f, url: URL.createObjectURL(f), isVideo });
+    }
+    const totalExisting = (reviewForm.images?.length || 0) + reviewPhotos.length;
+    const remaining = REVIEW_MAX_FILES - totalExisting;
+    if (valid.length > remaining) {
+      errors.push(`Максимум ${REVIEW_MAX_FILES} файлов (${totalExisting} уже добавлено)`);
+    }
+    if (errors.length) setReviewPhotoError(errors.slice(0, 2).join('; '));
+    else setReviewPhotoError('');
+    setReviewPhotos(prev => [...prev, ...valid].slice(0, Math.max(0, remaining)));
+    e.target.value = '';
+  };
+
+  const removeReviewPhoto = (idx) => {
+    setReviewPhotos(p => p.filter((_, i) => i !== idx));
+    setReviewPhotoError('');
+  };
+
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     setSubmittingReview(true);
     try {
-      await api.createReview({ reviewer_id: getUserId(), product_id: product.id, ...reviewForm });
+      let finalImages = [...(reviewForm.images || [])];
+      
+      if (reviewPhotos.length > 0) {
+        const uploadRes = await api.uploadReviewMedia(reviewPhotos.map(p => p.file));
+        if (uploadRes.images) finalImages = [...finalImages, ...uploadRes.images];
+      }
+
+      const payload = { 
+        reviewer_id: getUserId(), 
+        product_id: product.id, 
+        rating: reviewForm.rating,
+        text: reviewForm.text,
+        images: finalImages
+      };
+
+      if (isEditingReview && product.user_review) {
+        await api.updateReview(product.user_review.id, payload);
+      } else {
+        await api.createReview(payload);
+      }
+      
+      await refreshProduct();
       const revs = await api.getProductReviews(product.id);
       setReviews(revs);
       setReviewSubmitted(true);
@@ -337,7 +312,10 @@ export default function ProductPage() {
       
       await api.createOrder(getUserId(), product.id, payload);
       setBought(true);
-      // Не закрываем модалку сразу, показываем успешное сообщение внутри
+      // После покупки даем пользователю возможность сразу оставить отзыв
+      setTimeout(() => {
+        reviewFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
     } catch (err) {
       setBuyError(err.message || 'Ошибка при оформлении заказа');
     } finally {
@@ -392,7 +370,6 @@ export default function ProductPage() {
   const isItems = product.category_id === 'items';
   const isServices = product.category_id === 'services';
 
-  const uid = getUserId();
   const isSeller = String(product.seller_id) === String(uid);
   const isAuction = product.sale_type === 'auction';
   const live = !!product.auction_live;
@@ -534,12 +511,12 @@ export default function ProductPage() {
               {bought ? (
                 <div className="btn-bought">
                   <CheckCircle size={16} />
-                  {isRent ? `Аренда на ${rentHours} ч. оформлена. Детали — в «Истории сделок»` : 'Куплено! Перейти в Сделки'}
+                  {isRent ? `Аренда на ${rentHours} ч. оформлена. Детали — в «Истории сделок»` : (isServices ? 'Услуга оформлена' : 'Куплено! Перейти в Сделки')}
                 </div>
-              ) : product.is_active === 0 ? (
-                <div className="btn-bought">
-                  <CheckCircle size={16} />
-                  Товар уже продан
+              ) : product.is_sold ? (
+                <div className="btn-sold-badge">
+                  <X size={16} />
+                  ПРОДАНО
                 </div>
               ) : isAuction && live && (
                 <div className="auction-live-banner">
@@ -581,13 +558,63 @@ export default function ProductPage() {
               {isAuction && ended && !highBid && (
                 <p className="auction-ended-msg">Торги окончены, ставок не было.</p>
               )}
-              {winnerCanBuy && (
+              {product.is_sold ? (
+                <div className="btn-sold-badge-large">
+                  <X size={18} />
+                  ПРОДАНО
+                </div>
+              ) : bought ? (
+                <div className="btn-bought">
+                  <CheckCircle size={16} />
+                  {isRent ? `Аренда на ${rentHours} ч. оформлена` : (isServices ? 'Слот забронирован' : 'Куплено! Перейти в Сделки')}
+                </div>
+              ) : isAuction && live ? (
+                <div className="auction-live-banner">
+                  <Clock size={16} />
+                  <span>До конца: <strong>{formatCountdown(msLeft(product.auction_ends_at))}</strong></span>
+                </div>
+              ) : null}
+              {isAuction && live && isSeller && (
+                <p className="auction-seller-hint">Идут торги. Следующая мин. ставка: <strong>{(product.auction_min_next_bid ?? product.price).toLocaleString('ru-RU')} ₽</strong></p>
+              )}
+              {isAuction && live && !isSeller && uid && (
+                <form className="bid-form" onSubmit={handlePlaceBid}>
+                  <label className="bid-label">Ваша ставка (мин. {(product.auction_min_next_bid ?? product.price).toLocaleString('ru-RU')} ₽)</label>
+                  <div className="bid-row">
+                    <input
+                      type="number"
+                      className="bid-input"
+                      value={bidAmount}
+                      onChange={e => { setBidAmount(e.target.value); setBidError(''); }}
+                      placeholder={(product.auction_min_next_bid ?? product.price).toString()}
+                      min={product.auction_min_next_bid ?? product.price}
+                    />
+                    <button type="submit" className="btn-bid" disabled={bidLoading}>
+                      <Gavel size={16} />
+                      {bidLoading ? '…' : 'Ставка'}
+                    </button>
+                  </div>
+                  {bidError && <p className="bid-error">{bidError}</p>}
+                </form>
+              )}
+              {isAuction && live && !uid && (
+                <p className="auction-seller-hint">Войдите, чтобы сделать ставку</p>
+              )}
+              {isAuction && ended && highBid && (
+                <p className="auction-ended-msg">
+                  Торги окончены. Лидер: <strong>{product.auction_leader_name || '—'}</strong> ({highBid.toLocaleString('ru-RU')} ₽)
+                </p>
+              )}
+              {isAuction && ended && !highBid && (
+                <p className="auction-ended-msg">Торги окончены, ставок не было.</p>
+              )}
+              {winnerCanBuy && !product.is_sold && (
                 <button className="btn-buy" onClick={handleBuyClick} disabled={buying}>
                   <ShoppingBag size={16} />
                   {buying ? 'Оформление...' : `Оформить победу — ${highBid.toLocaleString('ru-RU')} ₽`}
                 </button>
               )}
-              {isRent && !isAuction && !isSeller && product.is_active === 1 && (
+              {isRent && !isAuction && !isSeller && !product.is_sold && (
                 <div className="rent-booking">
                   <label className="rent-booking-label">Срок аренды: <strong>{rentHours}</strong> ч. ({rentMinH}—{rentMaxH})</label>
                   <input
@@ -608,13 +635,13 @@ export default function ProductPage() {
                   </button>
                 </div>
               )}
-              {!isAuction && !isRent && !isSeller && product.is_active === 1 && (
+              {!isAuction && !isRent && !isSeller && !product.is_sold && (
                 bought ? (
                   <div className="btn-bought"><CheckCircle size={18} /> Оформлено</div>
                 ) : (
                   <button className="btn-buy" onClick={handleBuyClick} disabled={buying}>
                     <ShoppingBag size={18} /> 
-                    {buying ? 'Оформление...' : (isAuction ? 'Оформить по итогам' : (isRent ? 'Забронировать' : `Купить за ${product.price.toLocaleString('ru-RU')} ₽`))}
+                    {buying ? 'Оформление...' : `Купить за ${product.price.toLocaleString('ru-RU')} ₽`}
                   </button>
                 )
               )}
@@ -658,78 +685,8 @@ export default function ProductPage() {
           {/* Улучшенная панель характеристик и визуализации */}
           <div className="product-details-extra">
             {(() => {
-              const seed = getSeed(product.id);
-              if (isTransport) {
-                return (
-                  <div className="stats-panel">
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
-                      <h3 style={{margin:0}}>Технические характеристики</h3>
-                      <span className="badge-verified"><ShieldCheck size={12}/> Verified</span>
-                    </div>
-                    <div className="condition-grid">
-                      <div className="condition-card">
-                        <span className="c-label"><Gauge size={14} /> Состояние</span>
-                        <span className="c-value">{product.details?.condition || product.condition || pick(VARIATIONS.transport.conditions, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Zap size={14} /> Двигатель</span>
-                        <span className="c-value">{product.details?.engine || pick(VARIATIONS.transport.engines, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><ShieldCheck size={14} /> Юр. чистота</span>
-                        <span className="c-value">Проверено ГИБДД</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><RefreshCw size={14} /> История</span>
-                        <span className="c-value">{pick(VARIATIONS.transport.histories, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Gauge size={14} /> КПП</span>
-                        <span className="c-value">{pick(VARIATIONS.transport.transmissions, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Zap size={14} /> Привод</span>
-                        <span className="c-value">{pick(VARIATIONS.transport.drives, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Info size={14} /> Топливо</span>
-                        <span className="c-value">{pick(VARIATIONS.transport.fuels, seed)}</span>
-                      </div>
-                      {Object.entries(product.details || {}).filter(([k]) => !['condition', 'engine'].includes(k)).map(([k, v]) => (
-                        <div className="condition-card" key={k}>
-                          <span className="c-label">{k}</span>
-                          <span className="c-value">{String(v)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-              if (isRent) {
-                return (
-                  <div className="stats-panel">
-                    <h3>Условия аренды</h3>
-                    <div className="condition-grid">
-                      <div className="condition-card">
-                        <span className="c-label"><ShieldCheck size={14} /> Страховка</span>
-                        <span className="c-value">КАСКО/ОСАГО</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Info size={14} /> Залог</span>
-                        <span className="c-value">{product.details?.deposit || (seed % 2 === 0 ? 'Без залога' : `${(Math.floor(seed/1000)%10 + 5)*1000} ₽`)}</span>
-                      </div>
-                      {specEntries.map(([k, v]) => (
-                        <div className="condition-card" key={k}>
-                          <span className="c-label">{k}</span>
-                          <span className="c-value">{String(v)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
               if (isRealEstate) {
-                const Plan = [FloorPlanA, FloorPlanB, FloorPlanC][seed % 3];
+                const Plan = [FloorPlanA, FloorPlanB, FloorPlanC][product.floor_plan_id ?? 0];
                 return (
                   <div className="stats-panel extra-visual-panel">
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
@@ -747,89 +704,19 @@ export default function ProductPage() {
                   </div>
                 );
               }
-              if (isClothing) {
+              
+              // Render specs panel using product.details (provided by backend with mocks)
+              if (specEntries.length > 0) {
                 return (
                   <div className="stats-panel">
-                    <h3>Информация о продукте</h3>
+                    <h3>Параметры и характеристики</h3>
                     <div className="condition-grid">
-                      <div className="condition-card">
-                        <span className="c-label"><Sparkles size={14} /> Материал</span>
-                        <span className="c-value">{product.details?.material || pick(VARIATIONS.clothing.materials, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Ruler size={14} /> Силуэт</span>
-                        <span className="c-value">{product.details?.fit || pick(VARIATIONS.clothing.fits, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><ShieldCheck size={14} /> Уход</span>
-                        <span className="c-value">{pick(VARIATIONS.clothing.care, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><MapPin size={14} /> Происхождение</span>
-                        <span className="c-value">{pick(VARIATIONS.clothing.origins, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Info size={14} /> Аутентичность</span>
-                        <span className="c-value">100% Original</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              if (isItems) {
-                return (
-                  <div className="stats-panel">
-                    <h3>Детали и комплект</h3>
-                    <div className="condition-grid">
-                      <div className="condition-card">
-                        <span className="c-label"><Package size={14} /> Комплект</span>
-                        <span className="c-value">{product.details?.package || pick(VARIATIONS.items.packages, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><ShieldCheck size={14} /> Гарантия</span>
-                        <span className="c-value">{product.details?.warranty || pick(VARIATIONS.items.warranties, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Info size={14} /> Состояние</span>
-                        <span className="c-value">{product.condition}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Package size={14} /> Материал</span>
-                        <span className="c-value">{pick(VARIATIONS.items.materials_item, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Sparkles size={14} /> Проверка</span>
-                        <span className="c-value">Работоспособен 100%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              if (isServices) {
-                return (
-                  <div className="stats-panel">
-                    <h3>Параметры услуги</h3>
-                    <div className="condition-grid">
-                      <div className="condition-card">
-                        <span className="c-label"><Zap size={14} /> Скорость</span>
-                        <span className="c-value">{product.details?.speed || pick(VARIATIONS.services.speeds, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><ShieldCheck size={14} /> Гарантии</span>
-                        <span className="c-value">{pick(VARIATIONS.services.guarantees, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><User size={14} /> Исполнитель</span>
-                        <span className="c-value">Пройдена верификация</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Sparkles size={14} /> Ресурсы</span>
-                        <span className="c-value">{pick(VARIATIONS.services.tools, seed)}</span>
-                      </div>
-                      <div className="condition-card">
-                        <span className="c-label"><Info size={14} /> Оплата</span>
-                        <span className="c-value">Безопасная сделка</span>
-                      </div>
+                      {specEntries.map(([k, v]) => (
+                        <div className="condition-card" key={k}>
+                           <span className="c-label">{k}</span>
+                           <span className="c-value">{String(v)}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -840,30 +727,58 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* Reviews section */}
-      <div className="reviews-section">
-        <h2 className="reviews-title">Отзывы {reviews.length > 0 && <span className="reviews-count">({reviews.length})</span>}</h2>
+      {/* Reviews Section */}
+      {product.show_reviews_on_page && (
+        <div className="reviews-section">
+          <h2 className="reviews-title">Отзывы {reviews.length > 0 && <span className="reviews-count">({reviews.length})</span>}</h2>
 
-        {reviews.length === 0 ? (
-          <p className="reviews-empty">Отзывов пока нет</p>
-        ) : (
-          <div className="reviews-list">
-            {reviews.map(r => (
-              <div key={r.id} className="review-card">
-                <div className="review-header">
-                  <span className="review-author">{r.reviewer_name}</span>
-                  <span className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
-                  <span className="review-date">{new Date(r.created_at).toLocaleDateString('ru-RU')}</span>
+          {reviews.length === 0 ? (
+            <p className="reviews-empty">Отзывов пока нет</p>
+          ) : (
+            <div className="reviews-list">
+              {reviews.map(r => (
+                <div key={r.id} className="review-card">
+                  <div className="review-header">
+                    <div className="review-author-row">
+                      <span className="review-author">{r.reviewer_name}</span>
+                      {String(r.reviewer_id) === String(uid) && (
+                        <button className="btn-edit-inline" onClick={() => {
+                          setIsEditingReview(true);
+                          setReviewSubmitted(false);
+                          reviewFormRef.current?.scrollIntoView({ behavior: 'smooth' });
+                        }}>
+                          <Edit3 size={12} /> Изменить
+                        </button>
+                      )}
+                    </div>
+                    <span className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                    <span className="review-date">{new Date(r.created_at).toLocaleDateString('ru-RU')}</span>
+                  </div>
+                  {r.text && <p className="review-text">{r.text}</p>}
+                  {r.images && r.images.length > 0 && (
+                    <div className="review-media-preview">
+                      {r.images.map((img, i) => (
+                        <div key={i} className="rev-media-box">
+                          {img.match(/\.(mp4|mov)$/i)
+                            ? <video src={`http://localhost:3000${img}`} controls />
+                            : <img src={`http://localhost:3000${img}`} alt="" />
+                          }
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {r.text && <p className="review-text">{r.text}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-        {!reviewSubmitted && bought && (
+      {/* Persistent/Editable Review Form */}
+      {((product.can_review && !product.user_review) || isEditingReview || bought) && !reviewSubmitted && (
+        <div className="review-form-container" ref={reviewFormRef}>
           <form className="review-form" onSubmit={handleReviewSubmit}>
-            <h3>Оставить отзыв</h3>
+            <h3>{isEditingReview ? 'Редактировать отзыв' : 'Оставить отзыв'}</h3>
             <div className="star-picker">
               {[1,2,3,4,5].map(n => (
                 <button type="button" key={n}
@@ -874,17 +789,61 @@ export default function ProductPage() {
             <textarea
               value={reviewForm.text}
               onChange={e => setReviewForm({ ...reviewForm, text: e.target.value })}
-              placeholder="Напишите ваш отзыв (необязательно)..."
-              rows={3}
+              placeholder="Расскажите о вашем опыте..."
+              rows={4}
               className="review-textarea"
             />
-            <button type="submit" className="btn-submit-review" disabled={submittingReview}>
-              {submittingReview ? 'Отправка...' : 'Отправить отзыв'}
-            </button>
+            
+            <div className="review-photo-upload">
+              <label className="rev-upload-label">
+                <Camera size={20} />
+                <span>Добавить фото/видео</span>
+                <input type="file" multiple accept=".jpg,.jpeg,.png,.gif,.mp4,.mov" onChange={handleReviewPhotos} hidden />
+              </label>
+              <span className="rev-upload-hint">
+                {(reviewForm.images?.length || 0) + reviewPhotos.length}/{REVIEW_MAX_FILES} · jpg, png, gif, mp4, mov · до 50MB
+              </span>
+              {reviewPhotoError && <p className="rev-upload-error">{reviewPhotoError}</p>}
+              
+              <div className="rev-photo-previews">
+                {/* Existing photos (from edit) */}
+                {reviewForm.images?.map((img, idx) => (
+                  <div key={`old-${idx}`} className="rev-preview-box">
+                    {img.match(/\.(mp4|mov)$/i)
+                      ? <video src={`http://localhost:3000${img}`} />
+                      : <img src={`http://localhost:3000${img}`} alt="" />
+                    }
+                    <button type="button" className="rev-remove" onClick={() => { setReviewForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)})); setReviewPhotoError(''); }}><X size={12}/></button>
+                  </div>
+                ))}
+                {/* New local photos */}
+                {reviewPhotos.map((p, idx) => (
+                  <div key={`new-${idx}`} className="rev-preview-box">
+                    {p.isVideo ? <video src={p.url} /> : <img src={p.url} alt="" />}
+                    <button type="button" className="rev-remove" onClick={() => removeReviewPhoto(idx)}><X size={12}/></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="review-form-actions">
+              <button type="submit" className="btn-submit-review" disabled={submittingReview}>
+                {submittingReview ? 'Сохранение...' : (isEditingReview ? 'Сохранить изменения' : 'Опубликовать отзыв')}
+              </button>
+              {isEditingReview && (
+                <button type="button" className="btn-cancel-review" onClick={() => setIsEditingReview(false)}>
+                  Отмена
+                </button>
+              )}
+            </div>
+            {isEditingReview && (
+              <p className="edit-hint">Вы уже оставляли отзыв, его можно отредактировать.</p>
+            )}
           </form>
-        )}
-        {reviewSubmitted && <p className="review-thanks">Спасибо за ваш отзыв!</p>}
-      </div>
+        </div>
+      )}
+      {reviewSubmitted && <p className="review-thanks">Отзыв успешно {isEditingReview ? 'обновлен' : 'добавлен'}!</p>}
+
       {/* Buy Modal */}
       {showBuyModal && (
         <div className="modal-overlay" onClick={() => setShowBuyModal(false)}>

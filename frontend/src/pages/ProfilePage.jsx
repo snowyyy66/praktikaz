@@ -4,47 +4,10 @@ import { User, Star, MapPin, Phone, Mail, Package, Eye, Heart, TrendingUp, Shopp
 import { api, getUserId } from '../api';
 import './ProfilePage.css';
 
-function getSalesLevel(salesCount = 0) {
-  if (salesCount >= 50) return 6;
-  if (salesCount >= 20) return 5;
-  if (salesCount >= 10) return 4;
-  if (salesCount >= 5) return 3;
-  if (salesCount >= 2) return 2;
-  if (salesCount >= 1) return 1;
-  return 0;
-}
-
-function getSalesBadge(salesCount = 0) {
-  const level = getSalesLevel(salesCount);
-  if (level >= 6) return { title: 'Император продаж', hint: `Продаж: ${salesCount}`, tone: 'gold' };
-  if (level >= 5) return { title: 'Гуру сделок', hint: `Продаж: ${salesCount}`, tone: 'purple' };
-  if (level >= 4) return { title: 'Мастер торга', hint: `Продаж: ${salesCount}`, tone: 'blue' };
-  if (level >= 3) return { title: 'Уверенный продавец', hint: `Продаж: ${salesCount}`, tone: 'green' };
-  if (level >= 2) return { title: 'Первый опыт', hint: `Продаж: ${salesCount}`, tone: 'teal' };
-  if (level >= 1) return { title: 'Новичок в продажах', hint: `Продаж: ${salesCount}`, tone: 'gray' };
-  return { title: 'Без сделок', hint: 'Сделай первую продажу', tone: 'gray' };
-}
-
-function getAdsLevel(totalAds = 0) {
-  if (totalAds >= 120) return 6;
-  if (totalAds >= 70) return 5;
-  if (totalAds >= 40) return 4;
-  if (totalAds >= 20) return 3;
-  if (totalAds >= 10) return 2;
-  if (totalAds >= 3) return 1;
-  return 0;
-}
-
-function getCatalogBadge(totalAds = 0) {
-  const level = getAdsLevel(totalAds);
-  if (level >= 6) return { title: 'Король витрины', hint: `Объявлений: ${totalAds}`, tone: 'gold' };
-  if (level >= 5) return { title: 'Магнат каталога', hint: `Объявлений: ${totalAds}`, tone: 'purple' };
-  if (level >= 4) return { title: 'Коллекционер лотов', hint: `Объявлений: ${totalAds}`, tone: 'blue' };
-  if (level >= 3) return { title: 'Активный продавец', hint: `Объявлений: ${totalAds}`, tone: 'green' };
-  if (level >= 2) return { title: 'Разгон витрины', hint: `Объявлений: ${totalAds}`, tone: 'teal' };
-  if (level >= 1) return { title: 'Первые лоты', hint: `Объявлений: ${totalAds}`, tone: 'gray' };
-  return { title: 'Пустая витрина', hint: 'Добавь первое объявление', tone: 'gray' };
-}
+/**
+ * Компонент ProfilePage (Личный кабинет и публичный профиль)
+ * Показывает статистику, достижения (бейджы с бэкенда), объявления и отзывы.
+ */
 
 /**
  * Компонент ProfilePage (Личный кабинет настройки)
@@ -58,6 +21,9 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [products, setProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLeft, setReviewsLeft] = useState([]);
+  const [showReviewsLeft, setShowReviewsLeft] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -69,12 +35,16 @@ export default function ProfilePage() {
       api.getUser(profileUserId),
       api.getUserStats(profileUserId),
       api.getUserProducts(profileUserId),
+      api.getUserReviewsList(profileUserId),
+      api.getReviewsByReviewer(profileUserId),
     ])
-      .then(([userData, statsData, productsData]) => {
+      .then(([userData, statsData, productsData, reviewsData, reviewsLeftData]) => {
         setUser(userData);
         setEditForm({ username: userData.username, city: userData.city, phone: userData.phone });
         setStats(statsData);
         setProducts(productsData);
+        setReviews(reviewsData);
+        setReviewsLeft(reviewsLeftData);
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
@@ -101,10 +71,8 @@ export default function ProfilePage() {
 
   if (loading) return <div className="loading-state">Загрузка профиля...</div>;
   if (!user) return <div className="empty-state">Не удалось загрузить профиль</div>;
-  const salesCount = stats?.sales?.count || 0;
-  const totalAds = stats?.totalProducts || 0;
-  const salesBadge = getSalesBadge(salesCount);
-  const catalogBadge = getCatalogBadge(totalAds);
+  
+  const badges = stats?.badges || [];
 
   return (
     <div className="profile-page animate-fade-in">
@@ -162,14 +130,12 @@ export default function ProfilePage() {
             <span><Mail size={14} /> {user.email}</span>
           </div>
           <div className="achievement-row">
-            <div className={`achievement-chip ${salesBadge.tone}`}>
-              <span className="achievement-title">За продажи: {salesBadge.title}</span>
-              <span className="achievement-hint">{salesBadge.hint}</span>
-            </div>
-            <div className={`achievement-chip ${catalogBadge.tone}`}>
-              <span className="achievement-title">За каталог: {catalogBadge.title}</span>
-              <span className="achievement-hint">{catalogBadge.hint}</span>
-            </div>
+            {badges.map((b, i) => (
+              <div key={i} className={`achievement-chip ${b.tone}`}>
+                <span className="achievement-title">{b.title}</span>
+                <span className="achievement-hint">{b.hint}</span>
+              </div>
+            ))}
           </div>
         </div>
         )}
@@ -223,65 +189,87 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* My Products */}
-      <div className="profile-section">
-        <div className="section-header">
-          <h2>{isOwnProfile ? 'Мои объявления' : `Объявления продавца ${user?.username || ''}`}</h2>
-          {isOwnProfile && <NavLink to="/my-products" className="see-all">Показать все →</NavLink>}
+      {/* Reviews Section */}
+      <div className="profile-section reviews-section">
+        <div className="section-header reviews-tabs">
+          <button className={`tab-btn ${!showReviewsLeft ? 'active' : ''}`} onClick={() => setShowReviewsLeft(false)}>
+            Отзывы о {isOwnProfile ? 'мне' : 'пользователе'} ({reviews.length})
+          </button>
+          <button className={`tab-btn ${showReviewsLeft ? 'active' : ''}`} onClick={() => setShowReviewsLeft(true)}>
+            {isOwnProfile ? 'Мои отзывы' : 'Оставленные отзывы'} ({reviewsLeft.length})
+          </button>
         </div>
-        {products.length === 0 ? (
-          <p className="empty-text">У вас пока нет объявлений</p>
+        {!showReviewsLeft ? (
+          reviews.length === 0 ? (
+            <p className="empty-text">Отзывов пока нет.</p>
+          ) : (
+            <div className="profile-reviews-list">
+              {reviews.map(r => (
+                <ReviewCard key={r.id} r={r} />
+              ))}
+            </div>
+          )
         ) : (
-          <div className="mini-products-grid">
-            {products.slice(0, 4).map(p => (
-              <NavLink to={`/product/${p.id}`} key={p.id} className="mini-card"
-                onMouseEnter={e => {
-                  const v = e.currentTarget.querySelector('video'); if (v) v.play();
-                  const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif) gif.src = gif.dataset.gif;
-                }}
-                onMouseLeave={e => {
-                  const v = e.currentTarget.querySelector('video'); if (v) { v.pause(); v.currentTime = 0; }
-                  const gif = e.currentTarget.querySelector('img[data-gif]'); if (gif && gif.dataset.frozen) gif.src = gif.dataset.frozen;
-                }}
-              >
-                <div className="mini-card-img">
-                  {p.images?.[0] ? (
-                    typeof p.images[0] === 'string' && p.images[0].match(/\.(mp4|mov)$/i)
-                      ? <video src={`http://localhost:3000${p.images[0]}`} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loop muted playsInline preload="metadata" />
-                      : <img src={p.images[0]?.startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`} alt={p.title} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loading="lazy"
-                          onLoad={e => {
-                            const img = e.target;
-                            if (p.images[0].match(/\.gif$/i) && !img.dataset.frozen) {
-                              fetch(img.src).then(r => r.blob()).then(blob => {
-                                const url = URL.createObjectURL(blob);
-                                const tmp = new Image();
-                                tmp.onload = () => {
-                                  const c = document.createElement('canvas');
-                                  c.width = tmp.width; c.height = tmp.height;
-                                  c.getContext('2d').drawImage(tmp, 0, 0);
-                                  img.dataset.gif = img.src;
-                                  img.dataset.frozen = c.toDataURL();
-                                  img.src = img.dataset.frozen;
-                                };
-                                tmp.src = url;
-                              }).catch(() => {});
-                            }
-                          }}
-                        />
-                  ) : (
-                    <div className="image-placeholder">{p.category_name?.substring(0, 2).toUpperCase()}</div>
-                  )}
-                </div>
-                <div className="mini-card-info">
-                  <span className="mini-title">{p.title}</span>
-                  <span className="mini-price">{p.price.toLocaleString('ru-RU')} ₽</span>
-                  <span className="mini-stats"><Eye size={12} /> {p.views} · <Heart size={12} /> {p.likes}</span>
-                </div>
-              </NavLink>
+          reviewsLeft.length === 0 ? (
+            <p className="empty-text">Отзывов пока не оставлено.</p>
+          ) : (
+            <div className="profile-reviews-list">
+              {reviewsLeft.map(r => (
+                <ReviewCard key={r.id} r={r} isLeftByMe={true} />
+              ))}
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReviewCard({ r, isLeftByMe = false }) {
+  const images = r.images || [];
+  const productImages = r.product_images || [];
+  
+  return (
+    <div className="profile-review-card animate-slide-up">
+      <div className="review-main-content">
+        <div className="review-header">
+          <span className="reviewer-name">{isLeftByMe ? `Вы (для ${r.target_user_name || 'продавца'})` : r.reviewer_name}</span>
+          <span className="review-date">{new Date(r.created_at).toLocaleDateString('ru-RU')}</span>
+          <div className="review-rating">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} size={14} fill={i < r.rating ? "#facc15" : "none"} color={i < r.rating ? "#facc15" : "#d1d5db"} />
+            ))}
+          </div>
+        </div>
+        <p className="review-text">{r.text}</p>
+        
+        {images.length > 0 && (
+          <div className="review-media-grid">
+            {images.map((img, idx) => (
+              <div key={idx} className="review-media-item">
+                 {img.match(/\.(mp4|mov)$/i) 
+                   ? <video src={`http://localhost:3000${img}`} controls muted style={{maxHeight:'100px', borderRadius:'4px'}} />
+                   : <img src={`http://localhost:3000${img}`} alt="" style={{maxHeight:'100px', borderRadius:'4px'}} />
+                 }
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      <NavLink to={`/product/${r.product_id}`} className="review-product-link">
+        <div className="linked-product-mini">
+          {productImages[0] ? (
+             <img src={`http://localhost:3000${productImages[0]}`} alt="" />
+          ) : (
+             <div className="linked-placeholder">{r.product_category_id?.substring(0,2).toUpperCase() || 'P'}</div>
+          )}
+          <div className="linked-info">
+            <span className="linked-title">{r.product_title}</span>
+            <span className="linked-cat">{r.product_price?.toLocaleString('ru-RU')} ₽</span>
+          </div>
+        </div>
+      </NavLink>
     </div>
   );
 }

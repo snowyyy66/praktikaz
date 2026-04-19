@@ -169,7 +169,104 @@ public class ProductsController : ControllerBase
             dict["is_favorite"] = fav == 1;
         }
 
+        // --- НОВАЯ ЛОГИКА (Перенос с фронтенда) ---
+        
+        // Категорийные флаги
+        dict["is_auction"] = dict["sale_type"]?.ToString() == "auction";
+        dict["is_rent"] = dict["category_id"]?.ToString() == "rent";
+        dict["is_services"] = dict["category_id"]?.ToString() == "services";
+        dict["is_real_estate"] = dict["category_id"]?.ToString() == "real-estate";
+
+        // Статус "Продано" и возможность оставить отзыв
+        dict["is_sold"] = Convert.ToInt32(dict["is_active"] ?? 1) == 0;
+        
+        bool canReview = false;
+        dynamic? userReview = null;
+
+        if (user_id.HasValue && user_id.Value > 0)
+        {
+            var order = await _db.QueryFirstOrDefaultAsync<dynamic>("SELECT id FROM orders WHERE buyer_id = @bid AND product_id = @pid", new { bid = user_id.Value, pid = id });
+            canReview = order != null;
+            userReview = await _db.QueryFirstOrDefaultAsync<dynamic>("SELECT * FROM reviews WHERE reviewer_id = @rid AND product_id = @pid", new { rid = user_id.Value, pid = id });
+        }
+
+        dict["can_review"] = canReview;
+        
+        // Десериализация images в user_review из JSON-строки
+        if (userReview != null)
+        {
+            var revDict = (IDictionary<string, object>)userReview;
+            if (revDict.ContainsKey("images") && revDict["images"] is string revJson)
+            {
+                try { revDict["images"] = System.Text.Json.JsonSerializer.Deserialize<string[]>(revJson); } 
+                catch { revDict["images"] = new string[0]; }
+            }
+        }
+        dict["user_review"] = userReview;
+        
+        // Всегда показывать отзывы на странице товара (теперь универсально для всех категорий)
+        dict["show_reviews_on_page"] = true;
+
+        // 4. План этажа для недвижимости
+        if ((string)dict["category_id"] == "realestate")
+        {
+            dict["floor_plan_id"] = id % 3; // 0, 1, 2
+        }
+
+        // 5. Характеристики-заглушки (Mocking), если они пустые
+        var detObj = dict["details"] as IDictionary<string, object> ?? new Dictionary<string, object>();
+        var seed = id;
+        
+        if ((string)dict["category_id"] == "transport") {
+            if (!detObj.ContainsKey("engine")) detObj["engine"] = GetVariation("transport", "engines", seed);
+            if (!detObj.ContainsKey("history")) detObj["history"] = GetVariation("transport", "histories", seed);
+            if (!detObj.ContainsKey("transmission")) detObj["transmission"] = GetVariation("transport", "transmissions", seed);
+            if (!detObj.ContainsKey("drive")) detObj["drive"] = GetVariation("transport", "drives", seed);
+            if (!detObj.ContainsKey("fuel")) detObj["fuel"] = GetVariation("transport", "fuels", seed);
+        } else if ((string)dict["category_id"] == "clothing") {
+            if (!detObj.ContainsKey("material")) detObj["material"] = GetVariation("clothing", "materials", seed);
+            if (!detObj.ContainsKey("fit")) detObj["fit"] = GetVariation("clothing", "fits", seed);
+            if (!detObj.ContainsKey("origin")) detObj["origin"] = GetVariation("clothing", "origins", seed);
+        } else if ((string)dict["category_id"] == "items") {
+            if (!detObj.ContainsKey("package")) detObj["package"] = GetVariation("items", "packages", seed);
+            if (!detObj.ContainsKey("warranty")) detObj["warranty"] = GetVariation("items", "warranties", seed);
+            if (!detObj.ContainsKey("material")) detObj["material"] = GetVariation("items", "materials_item", seed);
+        } else if ((string)dict["category_id"] == "services") {
+            if (!detObj.ContainsKey("speed")) detObj["speed"] = GetVariation("services", "speeds", seed);
+            if (!detObj.ContainsKey("guarantee")) detObj["guarantee"] = GetVariation("services", "guarantees", seed);
+        }
+        dict["details"] = detObj;
+
         return Ok(dict);
+    }
+
+    private string GetVariation(string cat, string type, int seed) {
+        var vars = new Dictionary<string, Dictionary<string, string[]>> {
+            ["transport"] = new Dictionary<string, string[]> {
+                ["engines"] = new[] { "3.0L V6 Turbo", "2.0L I4 Twin-Scroll", "4.4L V8 Bi-Turbo", "Electric Dual Motor", "Hybrid 2.5" },
+                ["histories"] = new[] { "1 владелец, без ДТП", "Обслуживание у дилера", "Заводской окрас", "Гаражное хранение" },
+                ["transmissions"] = new[] { "Автомат 8-ступ.", "Робот DCT", "Механика 6-ст.", "Прямой привод (EV)" },
+                ["drives"] = new[] { "Полный (AWD)", "Задний (RWD)", "Передний (FWD)" },
+                ["fuels"] = new[] { "Бензин АИ-98", "Дизель Turbo", "Электро", "Гибрид" }
+            },
+            ["clothing"] = new Dictionary<string, string[]> {
+                ["materials"] = new[] { "100% Хлопок", "Деним 14.5oz", "Натуральная кожа", "Шерсть мериноса" },
+                ["fits"] = new[] { "Oversized Fit", "Relaxed Silhouette", "Classic Regular", "Slim Athletic" },
+                ["origins"] = new[] { "Италия", "Япония", "США", "Франция", "Португалия" }
+            },
+            ["items"] = new Dictionary<string, string[]> {
+                ["packages"] = new[] { "Полный комплект", "Устройство + чехол", "Запечатан", "С чеком и гарантией" },
+                ["warranties"] = new[] { "24 месяца", "12 месяцев", "6 месяцев", "Пожизненный сервис" },
+                ["materials_item"] = new[] { "Алюминий", "Углеволокно", "Матовый пластик", "Закаленное стекло" }
+            },
+            ["services"] = new Dictionary<string, string[]> {
+                ["speeds"] = new[] { "Приезд за 20-40 мин", "В день обращения", "Запись на время", "Срочно (15 мин)" },
+                ["guarantees"] = new[] { "Договор + акт", "Гарантия по закону", "100% возврат", "Страховка" }
+            }
+        };
+        if (!vars.ContainsKey(cat) || !vars[cat].ContainsKey(type)) return "—";
+        var arr = vars[cat][type];
+        return arr[seed % arr.Length];
     }
 
     [HttpPost("{id}/views")]

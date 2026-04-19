@@ -98,10 +98,34 @@ public class UsersController : ControllerBase
         var sales = await _db.QueryFirstOrDefaultAsync<dynamic>("SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as revenue FROM orders WHERE seller_id = @id AND status = 'completed'", new { id });
         var purchases = await _db.QueryFirstOrDefaultAsync<dynamic>("SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as spent FROM orders WHERE buyer_id = @id AND status = 'completed'", new { id });
 
+        int salesCount = (int)(sales?.count ?? 0);
+        int catalogCount = totalProducts;
+
+        var badges = new List<object>();
+        
+        // Sales Badge Logic
+        if (salesCount >= 50) badges.Add(new { title = "Император продаж", hint = $"Продаж: {salesCount}", tone = "gold" });
+        else if (salesCount >= 20) badges.Add(new { title = "Гуру сделок", hint = $"Продаж: {salesCount}", tone = "purple" });
+        else if (salesCount >= 10) badges.Add(new { title = "Мастер торга", hint = $"Продаж: {salesCount}", tone = "blue" });
+        else if (salesCount >= 5) badges.Add(new { title = "Уверенный продавец", hint = $"Продаж: {salesCount}", tone = "green" });
+        else if (salesCount >= 2) badges.Add(new { title = "Первый опыт", hint = $"Продаж: {salesCount}", tone = "teal" });
+        else if (salesCount >= 1) badges.Add(new { title = "Новичок в продажах", hint = $"Продаж: {salesCount}", tone = "gray" });
+        else badges.Add(new { title = "Без сделок", hint = "Сделай первую продажу", tone = "gray" });
+
+        // Catalog Badge Logic
+        if (catalogCount >= 120) badges.Add(new { title = "Король витрины", hint = $"Объявлений: {catalogCount}", tone = "gold" });
+        else if (catalogCount >= 70) badges.Add(new { title = "Магнат каталога", hint = $"Объявлений: {catalogCount}", tone = "purple" });
+        else if (catalogCount >= 40) badges.Add(new { title = "Коллекционер лотов", hint = $"Объявлений: {catalogCount}", tone = "blue" });
+        else if (catalogCount >= 20) badges.Add(new { title = "Активный продавец", hint = $"Объявлений: {catalogCount}", tone = "green" });
+        else if (catalogCount >= 10) badges.Add(new { title = "Разгон витрины", hint = $"Объявлений: {catalogCount}", tone = "teal" });
+        else if (catalogCount >= 3) badges.Add(new { title = "Первые лоты", hint = $"Объявлений: {catalogCount}", tone = "gray" });
+        else badges.Add(new { title = "Пустая витрина", hint = "Добавь первое объявление", tone = "gray" });
+
         return Ok(new {
             totalProducts, activeProducts, totalViews, totalLikes,
-            sales = new { count = sales?.count ?? 0, revenue = sales?.revenue ?? 0 },
-            purchases = new { count = purchases?.count ?? 0, spent = purchases?.spent ?? 0 }
+            sales = new { count = salesCount, revenue = sales?.revenue ?? 0 },
+            purchases = new { count = purchases?.count ?? 0, spent = purchases?.spent ?? 0 },
+            badges
         });
     }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import { api, getUserId } from '../api';
@@ -50,11 +50,12 @@ export default function CreateProductPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     category_id: 'items',
     price: '',
-    city: 'Москва',
+    city: 'Новосибирск',
     condition: 'Б/У',
     description: ''
   });
@@ -64,13 +65,32 @@ export default function CreateProductPage() {
   const [details, setDetails] = useState({});
   const [photoError, setPhotoError] = useState('');
 
+  useEffect(() => {
+    api.getCategories().then(data => {
+      setCategories(data);
+      // Если по дефолту выбрана категория, у которой есть метаданные, обновим состояние по умолчанию
+      const defaultCat = data.find(c => c.id === formData.category_id);
+      if (defaultCat?.meta?.conditions) {
+        setFormData(prev => ({ ...prev, condition: defaultCat.meta.conditions[0] }));
+      }
+    }).catch(console.error);
+  }, []);
+
+  const currentCategory = categories.find(c => c.id === formData.category_id);
+  const categoryMeta = currentCategory?.meta || {};
+  const currentConditions = categoryMeta.conditions || ['Новое', 'Б/У'];
+  const extraFields = categoryMeta.fields || [];
+
   const handleChange = (e) => {
-    const updated = { ...formData, [e.target.name]: e.target.value };
-    if (e.target.name === 'category_id') {
-      const conditions = CATEGORY_CONDITIONS[e.target.value];
-      updated.condition = conditions ? conditions[0] : 'Б/У';
+    const { name, value } = e.target;
+    const updated = { ...formData, [name]: value };
+    if (name === 'category_id') {
+      const cat = categories.find(c => c.id === value);
+      if (cat?.meta?.conditions) {
+        updated.condition = cat.meta.conditions[0];
+      }
       setDetails({});
-      if (e.target.value === 'rent') setSaleMode('fixed');
+      if (value === 'rent') setSaleMode('fixed');
     }
     setFormData(updated);
   };
@@ -139,8 +159,7 @@ export default function CreateProductPage() {
     }
   };
 
-  const conditions = CATEGORY_CONDITIONS[formData.category_id] || ['Новое', 'Б/У'];
-  const extraFields = CATEGORY_FIELDS[formData.category_id] || [];
+  // Удалены жестко заданные константы CATEGORY_CONDITIONS и CATEGORY_FIELDS
 
   return (
     <div className="create-page animate-fade-in">
@@ -160,12 +179,9 @@ export default function CreateProductPage() {
             <div className="form-group">
               <label>Категория</label>
               <select name="category_id" value={formData.category_id} onChange={handleChange}>
-                <option value="transport">Транспорт</option>
-                <option value="realestate">Недвижимость</option>
-                <option value="items">Предметы</option>
-                <option value="clothing">Одежда и аксессуары</option>
-                <option value="services">Услуги</option>
-                <option value="rent">Аренда</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -211,7 +227,7 @@ export default function CreateProductPage() {
             <div className="form-group">
               <label>Состояние</label>
               <select name="condition" value={formData.condition} onChange={handleChange}>
-                {conditions.map(c => <option key={c} value={c}>{c}</option>)}
+                {currentConditions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="form-group">

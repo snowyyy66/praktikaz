@@ -112,7 +112,8 @@ public class OrdersController : ControllerBase
                   address_floor = req.address_floor ?? "", address_apartment = req.address_apartment ?? ""
               });
 
-            if (product.category_id != "rent" && product.category_id != "services")
+            var catId = product.category_id?.ToLower() ?? "";
+            if (catId != "rent" && catId != "services")
             {
                 await _db.ExecuteAsync("UPDATE products SET is_active = 0 WHERE id = @id", new { id = req.product_id });
             }
