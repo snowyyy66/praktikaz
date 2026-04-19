@@ -1,4 +1,4 @@
-﻿// Точка входа React-приложения с роутером и глобальными стилями.
+﻿// Вход: монтируем App в #root, BrowserRouter даёт useNavigate/useParams на всех страницах.
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'

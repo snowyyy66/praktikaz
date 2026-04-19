@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { Eye, Pencil, Trash2, X, Check } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { api, getUserId, isAdmin } from '../api';
+import { mediaUrl } from '../utils/mediaUrl';
 import './HomePage.css';
 import './MyProductsPage.css';
 
@@ -126,7 +127,7 @@ export default function AdminPage() {
               <NavLink to={`/product/${product.id}`} className="product-card">
                 <div className="card-image">
                   {product.images?.[0]
-                    ? <img src={product.images[0].startsWith('/uploads/') ? `http://localhost:3000${product.images[0]}` : product.images[0]} alt={product.title} className="card-img" loading="lazy" />
+                    ? <img src={mediaUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
                     : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase()}</div>}
                   <div className="card-badges">
                     <div className="badge"><Eye size={11} /> {product.views}</div>
@@ -202,7 +203,7 @@ export default function AdminPage() {
                 <div className="edit-photo-grid">
                   {(editingProduct.images || []).map((img) => (
                     <div key={img} className="edit-photo-item">
-                      <img src={img.startsWith('/uploads/') ? `http://localhost:3000${img}` : img} alt="" />
+                      <img src={mediaUrl(img)} alt="" />
                       <button type="button" className="edit-photo-remove" onClick={() => handleDeleteImage(img)}>Удалить</button>
                     </div>
                   ))}

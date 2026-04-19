@@ -1,8 +1,9 @@
-﻿// Рендерит боковую навигацию по разделам маркетплейса.
+﻿// Левое меню: ссылки на категории через query ?category= на главной; «Сменить аккаунт» = выход к экрану логина (через проп onOpenAuth).
 import { NavLink, Link, useSearchParams } from 'react-router-dom';
 import { LayoutGrid, Gavel, Car, Home, Box, Shirt, Briefcase, KeyRound, Heart, Package, Clock, User, LogOut, Shield } from 'lucide-react';
 import './Sidebar.css';
 
+// id совпадают с category_id на бэкенде
 const categories = [
   { id: 'transport', name: 'Транспорт', icon: <Car size={18} /> },
   { id: 'realestate', name: 'Недвижимость', icon: <Home size={18} /> },

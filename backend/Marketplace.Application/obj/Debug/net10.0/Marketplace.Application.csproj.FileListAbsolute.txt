@@ -1,0 +1,16 @@
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\bin\Debug\net10.0\Marketplace.Application.deps.json
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\bin\Debug\net10.0\Marketplace.Application.dll
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\bin\Debug\net10.0\Marketplace.Application.pdb
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\bin\Debug\net10.0\Marketplace.Core.dll
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\bin\Debug\net10.0\Marketplace.Core.pdb
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.csproj.AssemblyReference.cache
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.AssemblyInfoInputs.cache
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.AssemblyInfo.cs
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.csproj.CoreCompileInputs.cache
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.sourcelink.json
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketpl.A66CD6D4.Up2Date
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.dll
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\refint\Marketplace.Application.dll
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\Marketplace.Application.pdb
+C:\Users\Виктор\Desktop\prkt\praktikaz\backend\Marketplace.Application\obj\Debug\net10.0\ref\Marketplace.Application.dll

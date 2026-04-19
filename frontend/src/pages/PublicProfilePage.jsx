@@ -3,9 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, MapPin, Calendar, Star, Package, ShoppingBag, Eye, Heart } from 'lucide-react';
 import { api } from '../api';
+import { mediaUrl } from '../utils/mediaUrl';
 import './PublicProfilePage.css';
-
-const imgUrl = (src) => src?.startsWith('http') ? src : `http://localhost:3000${src}`;
 
 function PublicProfilePage() {
   const { id } = useParams();
@@ -63,7 +62,7 @@ function PublicProfilePage() {
       <div className="profile-header-card">
         <div className="profile-avatar-container">
           {profileUser.avatar ? (
-            <img src={imgUrl(profileUser.avatar)} alt={profileUser.username} className="profile-avatar" />
+            <img src={mediaUrl(profileUser.avatar)} alt={profileUser.username} className="profile-avatar" />
           ) : (
             <div className="profile-avatar-fallback">
               <User size={64} />
@@ -113,7 +112,7 @@ function PublicProfilePage() {
                  let images = [];
                  // У старых записей images может прийти строкой — безопасно парсим.
                  try { images = JSON.parse(product.images) || []; } catch(e){}
-                 const mainImg = images.length > 0 ? imgUrl(images[0]) : null;
+                 const mainImg = images.length > 0 ? mediaUrl(images[0]) : null;
 
                  return (
                     <div className="product-card" key={product.id} onClick={() => navigate(`/product/${product.id}`)}>

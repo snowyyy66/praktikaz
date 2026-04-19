@@ -1,39 +1,67 @@
-﻿// Содержит клиент API и хелперы для запросов к бэкенду.
-const API_BASE = 'http://localhost:3000/api';
+﻿// Единый клиент бэкенда: fetchApi для JSON, multipart для файлов.
+import { API_BASE } from './config.js';
 
-/** HTTP-запрос к API: парсит JSON, при ошибке кидает Error с текстом сервера */
+function pickErrorMessage(data, res) {
+  if (data && typeof data === 'object') {
+    const err = typeof data.error === 'string' ? data.error.trim() : '';
+    const detail = typeof data.detail === 'string' ? data.detail.trim() : '';
+    if (err && detail && err !== detail) return `${err} — ${detail}`;
+    const e = err || detail || data.title;
+    if (typeof e === 'string' && e.trim()) return e.trim();
+    if (data.errors && typeof data.errors === 'object') {
+      const first = Object.values(data.errors).flat?.()[0];
+      if (typeof first === 'string') return first;
+    }
+  }
+  return `Ошибка API (${res.status} ${res.statusText || ''})`.trim();
+}
+
 export async function fetchApi(endpoint, options = {}) {
-  // Единая точка запросов: так проще централизованно менять базовый URL и обработку ошибок.
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  // Даже если ответ не JSON, не даем упасть интерфейсу и подставляем пустой объект.
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+  } catch (e) {
+    const isNetwork =
+      e instanceof TypeError && (e.message === 'Failed to fetch' || e.message.includes('fetch'));
+    throw new Error(
+      isNetwork
+        ? 'Сервер API не отвечает. Запустите backend: в корне проекта npm run dev (нужны и API, и Vite).'
+        : e instanceof Error
+          ? e.message
+          : String(e),
+    );
+  }
+
+  const text = await res.text();
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = {};
+    }
+  }
+
+  if (!res.ok) throw new Error(pickErrorMessage(data, res));
+
   return data;
 }
 
-/** ID текущего пользователя: сначала dev-override в sessionStorage, иначе после логина — localStorage */
+// Текущий пользователь после логина (строка id в localStorage)
 export const getUserId = () => {
-  // Убираем старый dev-override, который мог залипнуть и ломать вход.
-  if (sessionStorage.getItem('userIdOverride') != null) {
-    sessionStorage.removeItem('userIdOverride');
-  }
-  // Основной источник авторизации в текущем проекте — localStorage.
+  if (sessionStorage.getItem('userIdOverride') != null) sessionStorage.removeItem('userIdOverride');
   return localStorage.getItem('userId') || null;
 };
 
 export const isAdmin = () => localStorage.getItem('isAdmin') === '1';
 
 export const api = {
-  /** Вход: проверяет почту/пароль, пишет userId в localStorage */
+  // --- авторизация ---
   login: async (credentials) => {
-    // Бэкенд возвращает user_id и роль, которые сохраняем для роутинга и прав доступа.
-    const res = await fetchApi('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials)
-    });
+    const res = await fetchApi('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
     if (res.success) {
       localStorage.setItem('userId', res.user_id);
       localStorage.setItem('isAdmin', res.is_admin ? '1' : '0');
@@ -41,164 +69,137 @@ export const api = {
     return res;
   },
 
-  /** Регистрация: создаёт пользователя, пишет userId в localStorage */
   register: async (data) => {
-    // После регистрации сразу логиним пользователя на клиенте тем же способом.
-    const res = await fetchApi('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-    if (res.success) {
-      localStorage.setItem('userId', res.user_id);
-      localStorage.setItem('isAdmin', res.is_admin ? '1' : '0');
-    }
+    const res = await fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(data) });
+    if (!res.success)
+      throw new Error(typeof res.error === 'string' ? res.error : 'Регистрация не завершилась успешно');
+    localStorage.setItem('userId', res.user_id);
+    localStorage.setItem('isAdmin', res.is_admin ? '1' : '0');
     return res;
   },
 
-  /** Выход: очищает localStorage и dev-override сессии */
   logout: () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('isAdmin');
   },
 
-  /** Создать объявление (тело — поля товара + seller_id) */
-  createProduct: (productData) =>
-    fetchApi('/products', {
-      method: 'POST',
-      body: JSON.stringify(productData),
-    }),
+  // --- объявления (товары) ---
+  createProduct: (productData) => fetchApi('/products', { method: 'POST', body: JSON.stringify(productData) }),
 
-  /** Список объявлений (фильтры: category, search, sort, auction, user_id для избранного) */
   getProducts: (params = {}) => {
-    // Превращаем объект фильтров в query-string для GET /products.
     const qs = new URLSearchParams(params).toString();
     return fetchApi(`/products${qs ? '?' + qs : ''}`).then((data) => {
-      // Поддержка старого формата ответа (массив), чтобы не ломать старые экраны.
-      if (Array.isArray(data)) {
-        return { items: data, page: 1, limit: data.length, has_more: false };
-      }
+      if (Array.isArray(data)) return { items: data, page: 1, limit: data.length, has_more: false };
       return data;
     });
   },
 
-  /** Одно объявление по id; подставляет user_id для флага «в избранном» */
   getProduct: (id) => {
     const uid = getUserId();
     const q = uid ? `?user_id=${encodeURIComponent(uid)}` : '';
     return fetchApi(`/products/${id}${q}`);
   },
-  /** Инкремент просмотров */
   incrementProductViews: (id) => fetchApi(`/products/${id}/views`, { method: 'POST' }),
-  /** История ставок по аукционному лоту */
   getProductBids: (id) => fetchApi(`/products/${id}/bids`),
-  /** Сделать ставку на аукцион */
   placeBid: (id, bidderId, amount) =>
     fetchApi(`/products/${id}/bids`, { method: 'POST', body: JSON.stringify({ bidder_id: bidderId, amount }) }),
-  /** Увеличить счётчик лайков (устаревший сценарий; избранное — через toggleFavorite) */
   likeProduct: (id) => fetchApi(`/products/${id}/like`, { method: 'POST' }),
-  /** Обновить объявление */
-  updateProduct: (id, data, actorId = getUserId()) => fetchApi(`/products/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ ...data, seller_id: data?.seller_id ?? getUserId(), actor_id: actorId })
-  }),
-  /** Снять объявление с публикации (мягкое удаление) */
+  updateProduct: (id, data, actorId = getUserId()) =>
+    fetchApi(`/products/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...data, seller_id: data?.seller_id ?? getUserId(), actor_id: actorId }),
+    }),
   deleteProduct: (id, sellerId = getUserId(), actorId = getUserId()) =>
     fetchApi(`/products/${id}?seller_id=${encodeURIComponent(sellerId)}&actor_id=${encodeURIComponent(actorId)}`, { method: 'DELETE' }),
-  /** Загрузить фото объявления (multipart) */
   uploadProductImages: async (productId, sellerId, files, actorId = getUserId()) => {
     const fd = new FormData();
-    // Отправляем каждую картинку как отдельное поле images в multipart-запросе.
     for (const f of files) fd.append('images', f);
     fd.append('seller_id', sellerId);
     fd.append('actor_id', actorId);
-    const res = await fetch(`http://localhost:3000/api/products/${productId}/images`, { method: 'POST', body: fd });
+    const res = await fetch(`${API_BASE}/products/${productId}/images`, { method: 'POST', body: fd });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `API Error: ${res.status}`);
     return data;
   },
-  /** Удалить одну фото из объявления */
   deleteProductImage: (productId, imageUrl, sellerId = getUserId(), actorId = getUserId()) =>
     fetchApi(`/products/${productId}/images`, {
       method: 'DELETE',
-      body: JSON.stringify({ image_url: imageUrl, seller_id: sellerId, actor_id: actorId })
+      body: JSON.stringify({ image_url: imageUrl, seller_id: sellerId, actor_id: actorId }),
     }),
 
-
-  /** Поиск по названию и описанию */
   search: (q) => fetchApi(`/search?q=${encodeURIComponent(q)}`),
-
-  /** Все категории */
   getCategories: () => fetchApi('/categories'),
 
-  /** Профиль пользователя по id */
+  // --- профиль и статистика ---
   getUser: (id) => fetchApi(`/users/${id}`),
-  /** Сохранить имя, телефон, город в профиле */
   updateUser: (id, userData) => fetchApi(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) }),
-  /** Активные объявления продавца */
-  getUserProducts: (id) => fetchApi(`/users/${id}/products`),
-  /** Сводная статистика продавца/покупателя */
-  getUserStats: (id) => fetchApi(`/users/${id}/stats`),
+  getUserProducts: (id, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchApi(`/users/${id}/products${qs ? '?' + qs : ''}`).then((data) =>
+      Array.isArray(data) ? data : data.items ?? []
+    );
+  },
+  getMyProductsPaged: (sellerId, params = {}) => {
+    const qs = new URLSearchParams({ seller_id: sellerId, ...params }).toString();
+    return fetchApi(`/products/my?${qs}`);
+  },
+  getUserStats: (id, opts = {}) => {
+    const q = new URLSearchParams();
+    if (opts.from) q.set('from', opts.from);
+    if (opts.to) q.set('to', opts.to);
+    if (opts.product_ids) q.set('product_ids', opts.product_ids);
+    const qs = q.toString();
+    return fetchApi(`/users/${id}/stats${qs ? '?' + qs : ''}`);
+  },
 
-  /** Список избранного пользователя */
   getUserFavorites: (userId) => fetchApi(`/users/${userId}/favorites`),
-  /** Добавить/убрать товар в избранном (переключатель) */
-  toggleFavorite: (userId, productId) => 
-    fetchApi('/favorites', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: userId, product_id: productId })
-    }),
+  toggleFavorite: (userId, productId) =>
+    fetchApi('/favorites', { method: 'POST', body: JSON.stringify({ user_id: userId, product_id: productId }) }),
 
-  /** Получить занятые слоты на дату */
+  // --- заказы и слоты услуг ---
   getProductAvailability: (id, date) => fetchApi(`/products/${id}/availability?date=${encodeURIComponent(date)}`),
-  /** История заказов пользователя (покупки и продажи) */
-  getUserOrders: (userId) => fetchApi(`/users/${userId}/orders`),
-  /** Оформить покупку/аренду; для аренды передать options.rent_hours */
+  getUserOrders: (userId, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchApi(`/users/${userId}/orders${qs ? '?' + qs : ''}`).then((data) =>
+      Array.isArray(data) ? data : data.items ?? []
+    );
+  },
+  getUserOrdersRaw: (userId, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchApi(`/users/${userId}/orders${qs ? '?' + qs : ''}`);
+  },
   createOrder: (buyerId, productId, data = {}) =>
     fetchApi('/orders', {
       method: 'POST',
-      body: JSON.stringify({
-        buyer_id: buyerId,
-        product_id: productId,
-        ...data
-      }),
+      body: JSON.stringify({ buyer_id: buyerId, product_id: productId, ...data }),
     }),
 
-  /** Загрузить аватар (multipart, не через fetchApi) */
   uploadAvatar: (userId, file) => {
     const fd = new FormData();
-    // Для файлов нельзя ставить JSON Content-Type — браузер сам проставит boundary.
     fd.append('avatar', file);
-    return fetch(`http://localhost:3000/api/users/${userId}/avatar`, { method: 'POST', body: fd })
-      .then(async (r) => {
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(data.error || `API Error: ${r.status}`);
-        return data;
-      });
+    return fetch(`${API_BASE}/users/${userId}/avatar`, { method: 'POST', body: fd }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `API Error: ${r.status}`);
+      return data;
+    });
   },
 
-  /** Отзывы к товару */
+  // --- отзывы ---
   getProductReviews: (productId) => fetchApi(`/products/${productId}/reviews`),
-  /** Оставить отзыв (после покупки) */
   createReview: (data) => fetchApi('/reviews', { method: 'POST', body: JSON.stringify(data) }),
 
-  /** Список диалогов пользователя */
+  // --- чаты и админка ---
   getConversations: (userId) => fetchApi(`/conversations?user_id=${userId}`),
-  /** Админка: все объявления */
   getAdminProducts: (userId) => fetchApi(`/admin/products?user_id=${encodeURIComponent(userId)}`),
-  /** Найти или создать чат между двумя пользователями (опционально по объявлению) */
   createConversation: (user1_id, user2_id, product_id) =>
     fetchApi('/conversations', { method: 'POST', body: JSON.stringify({ user1_id, user2_id, product_id }) }),
-  /** Сообщения в диалоге */
-  getMessages: (convId, userId = getUserId()) => fetchApi(`/conversations/${convId}/messages?user_id=${encodeURIComponent(userId)}`),
-  /** Отправить сообщение в диалог */
+  getMessages: (convId, userId = getUserId()) =>
+    fetchApi(`/conversations/${convId}/messages?user_id=${encodeURIComponent(userId)}`),
   sendMessage: (convId, senderId, text) =>
     fetchApi(`/conversations/${convId}/messages`, { method: 'POST', body: JSON.stringify({ sender_id: senderId, text }) }),
 
-  /** Уведомления пользователя */
+  // --- уведомления ---
   getNotifications: (userId) => fetchApi(`/users/${userId}/notifications`),
-  /** Пометить одно уведомление прочитанным */
   markNotificationRead: (id) => fetchApi(`/notifications/${id}/read`, { method: 'PUT' }),
-  /** Пометить все уведомления прочитанными */
   markAllNotificationsRead: (userId) => fetchApi(`/users/${userId}/notifications/read-all`, { method: 'PUT' }),
 };
-

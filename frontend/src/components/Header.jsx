@@ -1,4 +1,4 @@
-﻿// Рендерит верхнюю панель с поиском и быстрыми действиями.
+﻿// Шапка: поиск ведёт на главную с ?search=; счётчики непрочитанных тянутся раз в 30 сек.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, MessageSquare, Bell, User } from 'lucide-react';
@@ -13,6 +13,7 @@ export default function Header() {
 
   useEffect(() => {
     const load = () => {
+      // уведомления и диалоги — для бейджей на колокольчике и сообщениях
       api.getNotifications(getUserId())
         .then(data => setUnreadCount(data.filter(n => !n.is_read).length))
         .catch(() => {});

@@ -54,7 +54,9 @@ export default function OrdersPage() {
                   <span className={`order-amount ${isSale ? 'positive' : 'negative'}`}>
                     {isSale ? '+' : '-'}{order.total.toLocaleString('ru-RU')} ₽
                   </span>
-                  <span className={`order-status ${order.status}`}>{order.status === 'completed' ? 'Завершена' : order.status}</span>
+                  <span className={`order-status ${order.status}`}>
+                    {order.status === 'completed' ? 'Завершена' : order.status === 'created' ? 'Создан' : order.status}
+                  </span>
                 </div>
               </div>
             );

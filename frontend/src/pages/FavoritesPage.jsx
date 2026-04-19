@@ -3,12 +3,8 @@ import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Heart, Eye } from 'lucide-react';
 import { api, getUserId } from '../api';
+import { mediaUrl } from '../utils/mediaUrl';
 import './HomePage.css';
-
-function cardImgUrl(src) {
-  if (!src) return null;
-  return src.startsWith('http') ? src : `http://localhost:3000${src}`;
-}
 
 export default function FavoritesPage() {
   const [products, setProducts] = useState([]);
@@ -68,7 +64,7 @@ export default function FavoritesPage() {
             <NavLink to={`/product/${product.id}`} key={product.id} className="product-card">
               <div className="card-image">
                 {product.images?.[0]
-                  ? <img src={cardImgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
+                  ? <img src={mediaUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
                   : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase()}</div>
                 }
                 <div className="card-badges">

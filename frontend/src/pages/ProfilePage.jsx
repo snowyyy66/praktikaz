@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { User, Star, MapPin, Phone, Mail, Package, Eye, Heart, TrendingUp, ShoppingCart, Calendar, Edit3, Camera } from 'lucide-react';
 import { api, getUserId } from '../api';
+import { mediaUrl } from '../utils/mediaUrl';
 import './ProfilePage.css';
 
 function getSalesLevel(salesCount = 0) {
@@ -59,8 +60,6 @@ export default function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const imgUrl = (src) => (src?.startsWith('/uploads/') ? `http://localhost:3000${src}` : src);
-
   useEffect(() => {
     Promise.all([
       api.getUser(profileUserId),
@@ -109,7 +108,7 @@ export default function ProfilePage() {
       <div className="profile-header">
         <div className="profile-avatar">
           {user.avatar ? (
-            <img src={`http://localhost:3000${user.avatar}`} alt={user.username} className="avatar-img" />
+            <img src={mediaUrl(user.avatar)} alt={user.username} className="avatar-img" />
           ) : (
             <User size={48} />
           )}
@@ -234,7 +233,7 @@ export default function ProfilePage() {
               <NavLink to={`/product/${p.id}`} key={p.id} className="mini-card">
                 <div className="mini-card-img">
                   {p.images?.[0]
-                    ? <img src={imgUrl(p.images[0])} alt={p.title} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loading="lazy" />
+                    ? <img src={mediaUrl(p.images[0])} alt={p.title} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'8px'}} loading="lazy" />
                     : <div className="image-placeholder">{p.category_name?.substring(0, 2).toUpperCase()}</div>
                   }
                 </div>

@@ -93,6 +93,10 @@
   background: rgba(56,176,0,0.15);
   color: #38b000;
 }
+.order-status.created {
+  background: rgba(59,130,246,0.15);
+  color: #60a5fa;
+}
 
 .loading-state, .empty-state {
   display: flex;

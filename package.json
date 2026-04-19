@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently --names \"BACK,FRONT\" --prefix-colors \"cyan,magenta\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\""
+    "dev": "node scripts/run-dev.js",
+    "dev:raw": "concurrently --names \"API,FRONT\" --prefix-colors \"cyan,magenta\" \"dotnet run --project backend/Marketplace.Api/Marketplace.Api.csproj\" \"npm run dev --prefix frontend\"",
+    "dev:front": "npm run dev --prefix frontend"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"

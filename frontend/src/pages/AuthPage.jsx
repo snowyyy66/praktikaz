@@ -30,7 +30,12 @@ export default function AuthPage({ onLogin }) {
       onLogin();
     } catch (err) {
       console.error(err);
-      setError(isLogin ? 'Неверная почта или пароль' : 'Ошибка регистрации (возможно, такой пользователь уже существует)');
+      const fallbackLogin = 'Неверная почта или пароль';
+      const fallbackRegister =
+        'Не удалось выполнить действие. Если видите это сообщение без текста ошибки выше — проверьте консоль браузера.';
+      const apiMsg =
+        err instanceof Error ? err.message.trim() : typeof err === 'string' ? err : fallbackRegister;
+      setError(apiMsg || (isLogin ? fallbackLogin : fallbackRegister));
     } finally {
       setLoading(false);
     }

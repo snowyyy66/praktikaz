@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "dgSpecHash": "OEopLE/OTmk=",
+  "success": true,
+  "projectFilePath": "c:\\Users\\Виктор\\Desktop\\prkt\\praktikaz\\backend\\Marketplace.Api\\Marketplace.Api.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Виктор\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.data.sqlite.core\\8.0.11\\microsoft.data.sqlite.core.8.0.11.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.entityframeworkcore\\8.0.11\\microsoft.entityframeworkcore.8.0.11.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\8.0.11\\microsoft.entityframeworkcore.abstractions.8.0.11.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\8.0.11\\microsoft.entityframeworkcore.analyzers.8.0.11.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.entityframeworkcore.relational\\8.0.11\\microsoft.entityframeworkcore.relational.8.0.11.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.entityframeworkcore.sqlite\\8.0.11\\microsoft.entityframeworkcore.sqlite.8.0.11.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.entityframeworkcore.sqlite.core\\8.0.11\\microsoft.entityframeworkcore.sqlite.core.8.0.11.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.extensions.apidescription.server\\6.0.5\\microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.extensions.dependencymodel\\8.0.2\\microsoft.extensions.dependencymodel.8.0.2.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\microsoft.openapi\\1.6.14\\microsoft.openapi.1.6.14.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.6\\sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\sqlitepclraw.core\\2.1.6\\sqlitepclraw.core.2.1.6.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.6\\sqlitepclraw.lib.e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.6\\sqlitepclraw.provider.e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\swashbuckle.aspnetcore\\6.6.2\\swashbuckle.aspnetcore.6.6.2.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\6.6.2\\swashbuckle.aspnetcore.swagger.6.6.2.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\6.6.2\\swashbuckle.aspnetcore.swaggergen.6.6.2.nupkg.sha512",
+    "C:\\Users\\Виктор\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\6.6.2\\swashbuckle.aspnetcore.swaggerui.6.6.2.nupkg.sha512"
+  ],
+  "logs": []
+}

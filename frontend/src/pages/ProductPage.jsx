@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles, X } from 'lucide-react';
 import { api, getUserId } from '../api';
+import { mediaUrl } from '../utils/mediaUrl';
 import './ProductPage.css';
 
 function formatAuctionEnds(iso) {
@@ -376,8 +377,6 @@ export default function ProductPage() {
     }
   };
 
-  const imgUrl = (src) => src?.startsWith('http') ? src : `http://localhost:3000${src}`;
-
   if (loading) return <div className="loading-state">Загрузка...</div>;
   if (!product) return <div className="empty-state">Товар не найден</div>;
 
@@ -414,7 +413,7 @@ export default function ProductPage() {
         <div className="product-left">
           <div className="product-image-large">
             {product.images && product.images.length > 0 ? (
-              <img src={imgUrl(product.images[activeImg])} alt={product.title} className="product-main-img" />
+              <img src={mediaUrl(product.images[activeImg])} alt={product.title} className="product-main-img" />
             ) : (
               <div className="image-placeholder">ФОТО</div>
             )}
@@ -433,7 +432,7 @@ export default function ProductPage() {
               {product.images.map((img, i) => (
                 <img
                   key={i}
-                  src={imgUrl(img)}
+                  src={mediaUrl(img)}
                   alt=""
                   className={`product-thumb${activeImg === i ? ' active' : ''}`}
                   onClick={() => setActiveImg(i)}
@@ -493,7 +492,7 @@ export default function ProductPage() {
             <div className="seller-header">
               <div className="seller-avatar-lg">
                 {product.seller_avatar
-                  ? <img src={imgUrl(product.seller_avatar)} alt={product.seller_name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+                  ? <img src={mediaUrl(product.seller_avatar)} alt={product.seller_name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
                   : <User size={28} />
                 }
               </div>

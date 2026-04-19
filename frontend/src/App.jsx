@@ -1,4 +1,4 @@
-﻿// Определяет каркас приложения и маршруты страниц.
+﻿// Корневой компонент: не залогинен — только AuthPage; иначе сетка с сайдбаром, шапкой и <Routes>.
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -17,9 +17,11 @@ import AdminPage from './pages/AdminPage';
 import { isAdmin as checkIsAdmin } from './api';
 
 function App() {
+  // isAuthenticated: есть userId в localStorage; isAdmin: роль из ответа логина
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // При открытии приложения подхватываем сессию, если пользователь уже логинился
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     if (userId) {
@@ -41,7 +43,7 @@ function App() {
   };
 
   if (!isAuthenticated) {
-    return <AuthPage onLogin={handleLogin} />;
+    return <AuthPage onLogin={handleLogin} />; // логин/регистрация — отдельный экран без лейаута
   }
 
   return (
@@ -51,6 +53,7 @@ function App() {
         <Header />
         <div className="page-content">
           <Routes>
+            {/* Каталог: query ?category= & ?search= & ?auction=1 обрабатываются в HomePage */}
             <Route path="/" element={<HomePage />} />
             <Route path="/product/:id" element={<ProductPage />} />
             <Route path="/profile" element={<ProfilePage />} />
@@ -61,7 +64,7 @@ function App() {
             <Route path="/create" element={<CreateProductPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/admin" element={isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
+            <Route path="/admin" element={isAdmin ? <AdminPage /> : <Navigate to="/" replace />} /> {/* не-админ с /admin уходит на главную */}
           </Routes>
         </div>
       </main>

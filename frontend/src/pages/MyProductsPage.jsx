@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { Eye, Heart, Pencil, Trash2, X, Check, Upload } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { api, getUserId } from '../api';
+import { mediaUrl } from '../utils/mediaUrl';
 import './HomePage.css';
 import './MyProductsPage.css';
 
@@ -18,8 +19,6 @@ export default function MyProductsPage() {
   const [saving, setSaving] = useState(false);
   const [editPhotos, setEditPhotos] = useState([]);
   const [photoError, setPhotoError] = useState('');
-  const cardImgUrl = (src) => (src?.startsWith('/uploads/') ? `http://localhost:3000${src}` : src);
-
   useEffect(() => {
     loadProducts();
   }, []);
@@ -120,7 +119,7 @@ export default function MyProductsPage() {
               <NavLink to={`/product/${product.id}`} className="product-card">
                 <div className="card-image">
                   {product.images?.[0]
-                    ? <img src={cardImgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
+                    ? <img src={mediaUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
                     : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase()}</div>
                   }
                   <div className="card-badges">
@@ -221,7 +220,7 @@ export default function MyProductsPage() {
                 <div className="edit-photo-grid">
                   {(editingProduct.images || []).map((img) => (
                     <div key={img} className="edit-photo-item">
-                      <img src={img.startsWith('/uploads/') ? `http://localhost:3000${img}` : img} alt="" />
+                      <img src={mediaUrl(img)} alt="" />
                       <button type="button" className="edit-photo-remove" onClick={() => handleDeleteImage(img)}>Удалить</button>
                     </div>
                   ))}

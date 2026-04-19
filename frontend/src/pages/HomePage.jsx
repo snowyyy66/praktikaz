@@ -1,8 +1,9 @@
-﻿// Главная страница с каталогом, фильтрами и подгрузкой.
+﻿// Каталог: список карточек из API, фильтры из URL (?category, ?search, ?auction), подгрузка следующей страницы по скроллу (IntersectionObserver).
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { Eye, Heart, Gavel } from 'lucide-react';
 import { api, getUserId } from '../api';
+import { mediaUrl } from '../utils/mediaUrl';
 import './HomePage.css';
 
 const SORT_OPTIONS = [
@@ -27,6 +28,7 @@ export default function HomePage() {
   const search = searchParams.get('search') || '';
   const auctionOnly = searchParams.get('auction') === '1';
 
+  // append=true — добавить к списку (бесконечная прокрутка); false — перезапись (смена фильтра)
   const fetchProducts = useCallback(async (targetPage, append) => {
     const params = { sort, page: targetPage, limit: 100 };
     if (category) params.category = category;
@@ -42,6 +44,7 @@ export default function HomePage() {
     setPage(targetPage);
   }, [category, sort, search, auctionOnly, cityFilter]);
 
+  // При смене категории/поиска/сортировки перезагружаем с первой страницы
   useEffect(() => {
     setLoading(true);
     setHasMore(true);
@@ -51,6 +54,7 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, [fetchProducts]);
 
+  // Нижний якорь в разметке: когда попадает в экран — запрашиваем page+1
   useEffect(() => {
     if (loading || loadingMore || !hasMore || !loadMoreRef.current) return;
     const el = loadMoreRef.current;
@@ -93,11 +97,6 @@ export default function HomePage() {
       clothing: 'Одежда и аксессуары', services: 'Услуги и прочее', rent: 'Аренда транспорта'
     };
     return category ? names[category] || 'Объявления' : 'Все объявления';
-  };
-
-  const imgUrl = (src) => {
-    if (!src) return '';
-    return src.startsWith('http') ? src : `http://localhost:3000${src}`;
   };
 
   return (
@@ -145,7 +144,7 @@ export default function HomePage() {
             <NavLink to={`/product/${product.id}`} key={product.id} className="product-card">
               <div className="card-image">
                 {product.images?.[0]
-                  ? <img src={imgUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
+                  ? <img src={mediaUrl(product.images[0])} alt={product.title} className="card-img" loading="lazy" />
                   : <div className="image-placeholder">{product.category_name?.substring(0, 2).toUpperCase() || 'ФТ'}</div>
                 }
                 <div className="card-badges">
