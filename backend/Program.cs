@@ -1,5 +1,9 @@
-using System.Text.Json;
+using Backend.Data;
+using Backend.Middleware;
+using Backend.Repositories;
 using Backend.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Backend;
 
@@ -19,15 +23,34 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         
-        // CORS config identical to Node.js app.use(cors())
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAll",
                 b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
         });
 
-        // Register Database service
+        // Add EF Core DbContext
+        var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "marketplace.db");
+        builder.Services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlite($"Data Source={dbPath};Cache=Shared"));
+
+        // Register Database service (legacy compatibility)
         builder.Services.AddSingleton<DbService>();
+
+        // Register Repositories
+        builder.Services.AddScoped<IProductRepository, ProductRepository>();
+        builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+        builder.Services.AddScoped<IAuctionRepository, AuctionRepository>();
+
+        // Register Services
+        builder.Services.AddScoped<IProductService, ProductService>();
+        builder.Services.AddScoped<IOrderService, OrderService>();
+
+        // Global Exception Handler
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+        builder.Services.AddProblemDetails();
 
         var app = builder.Build();
 
@@ -38,9 +61,9 @@ public class Program
             app.UseSwaggerUI();
         }
 
+        app.UseExceptionHandler();
         app.UseCors("AllowAll");
         
-        // Static files for uploads directory
         app.UseStaticFiles(new StaticFileOptions
         {
             FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
@@ -53,16 +76,7 @@ public class Program
         });
 
         app.UseAuthorization();
-
         app.MapControllers();
-
-        // Migration hack for new notification layout
-        var db = app.Services.GetRequiredService<DbService>();
-        try { db.ExecuteAsync("ALTER TABLE notifications ADD COLUMN related_user_id INTEGER;").Wait(); } catch {}
-        try { db.ExecuteAsync("ALTER TABLE notifications ADD COLUMN related_product_id INTEGER;").Wait(); } catch {}
-        try { db.ExecuteAsync("CREATE TABLE IF NOT EXISTS product_views (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL, user_id INTEGER NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(product_id, user_id));").Wait(); } catch {}
-        try { db.ExecuteAsync("CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, product_id INTEGER NOT NULL, rating INTEGER NOT NULL DEFAULT 5, text TEXT DEFAULT '', images TEXT DEFAULT '[]', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);").Wait(); } catch {}
-        try { db.ExecuteAsync("ALTER TABLE reviews ADD COLUMN images TEXT DEFAULT '[]';").Wait(); } catch {}
 
         // Start on port 3000 to match old server
         app.Run("http://localhost:3000");

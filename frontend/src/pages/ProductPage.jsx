@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, MessageCircle, Heart, Eye, MapPin, Phone, Star, ShoppingBag, CheckCircle, Gavel, Clock, ShieldCheck, Zap, Package, Info, Gauge, Ruler, RefreshCw, Sparkles, X, Camera, Edit3 } from 'lucide-react';
 import { api, getUserId } from '../api';
@@ -122,14 +122,14 @@ export default function ProductPage() {
 
     setLoading(true);
     Promise.all([api.getProduct(id), api.getProductReviews(id)])
-      .then(([data, revs]) => { 
-        setProduct(data); 
+      .then(([data, revs]) => {
+        setProduct(data);
         setReviews(revs);
         if (data.user_review) {
-          setReviewForm({ 
-            rating: data.user_review.rating, 
-            text: data.user_review.text, 
-            images: data.user_review.images || [] 
+          setReviewForm({
+            rating: data.user_review.rating,
+            text: data.user_review.text,
+            images: data.user_review.images || []
           });
           setIsEditingReview(true);
         }
@@ -145,7 +145,7 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!product?.auction_live) return;
-    const iv = setInterval(() => { refreshProduct(); api.getProductBids(id).then(setBidRows).catch(() => {}); }, 4000);
+    const iv = setInterval(() => { refreshProduct(); api.getProductBids(id).then(setBidRows).catch(() => { }); }, 4000);
     return () => clearInterval(iv);
   }, [product?.auction_live, id, refreshProduct]);
 
@@ -215,15 +215,15 @@ export default function ProductPage() {
     setSubmittingReview(true);
     try {
       let finalImages = [...(reviewForm.images || [])];
-      
+
       if (reviewPhotos.length > 0) {
         const uploadRes = await api.uploadReviewMedia(reviewPhotos.map(p => p.file));
         if (uploadRes.images) finalImages = [...finalImages, ...uploadRes.images];
       }
 
-      const payload = { 
-        reviewer_id: getUserId(), 
-        product_id: product.id, 
+      const payload = {
+        reviewer_id: getUserId(),
+        product_id: product.id,
         rating: reviewForm.rating,
         text: reviewForm.text,
         images: finalImages
@@ -234,7 +234,7 @@ export default function ProductPage() {
       } else {
         await api.createReview(payload);
       }
-      
+
       await refreshProduct();
       const revs = await api.getProductReviews(product.id);
       setReviews(revs);
@@ -286,7 +286,7 @@ export default function ProductPage() {
     const isRentProd = product.category_id === 'rent';
     const isDeliveryNeeded = ['services', 'items', 'clothing'].includes(product.category_id);
     setBuyError('');
-    
+
     if (isDeliveryNeeded && (!buyForm.street || !buyForm.house)) {
       setBuyError('Укажите адрес для ' + (isService ? 'выезда мастера' : 'доставки'));
       return;
@@ -309,7 +309,7 @@ export default function ProductPage() {
         address_floor: buyForm.floor,
         address_apartment: buyForm.apartment
       };
-      
+
       await api.createOrder(getUserId(), product.id, payload);
       setBought(true);
       // После покупки даем пользователю возможность сразу оставить отзыв
@@ -402,15 +402,15 @@ export default function ProductPage() {
               <div className="image-placeholder">ФОТО</div>
             )}
             {!isSeller && (
-            <button
-              type="button"
-              className={`like-btn-large${product.is_favorite ? ' favorite-on' : ''}`}
-              title={product.is_favorite ? 'Убрать из избранного' : 'В избранное'}
-              onClick={handleFavorite}
-            >
-              <Heart size={20} fill={product.is_favorite ? 'currentColor' : 'none'} />
-              <span>{product.is_favorite ? 'В избранном' : 'В избранное'}</span>
-            </button>
+              <button
+                type="button"
+                className={`like-btn-large${product.is_favorite ? ' favorite-on' : ''}`}
+                title={product.is_favorite ? 'Убрать из избранного' : 'В избранное'}
+                onClick={handleFavorite}
+              >
+                <Heart size={20} fill={product.is_favorite ? 'currentColor' : 'none'} />
+                <span>{product.is_favorite ? 'В избранном' : 'В избранное'}</span>
+              </button>
             )}
           </div>
           {product.images && product.images.length > 1 && (
@@ -489,7 +489,7 @@ export default function ProductPage() {
             <div className="seller-header">
               <div className="seller-avatar-lg">
                 {product.seller_avatar
-                  ? <img src={imgUrl(product.seller_avatar)} alt={product.seller_name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+                  ? <img src={imgUrl(product.seller_avatar)} alt={product.seller_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                   : <User size={28} />
                 }
               </div>
@@ -640,7 +640,7 @@ export default function ProductPage() {
                   <div className="btn-bought"><CheckCircle size={18} /> Оформлено</div>
                 ) : (
                   <button className="btn-buy" onClick={handleBuyClick} disabled={buying}>
-                    <ShoppingBag size={18} /> 
+                    <ShoppingBag size={18} />
                     {buying ? 'Оформление...' : `Купить за ${product.price.toLocaleString('ru-RU')} ₽`}
                   </button>
                 )
@@ -689,22 +689,22 @@ export default function ProductPage() {
                 const Plan = [FloorPlanA, FloorPlanB, FloorPlanC][product.floor_plan_id ?? 0];
                 return (
                   <div className="stats-panel extra-visual-panel">
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
-                      <h3 style={{margin:0}}>Архитектурный план</h3>
-                      <span className="badge-premium"><Sparkles size={12}/> High Fidelity</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <h3 style={{ margin: 0 }}>Архитектурный план</h3>
+                      <span className="badge-premium"><Sparkles size={12} /> High Fidelity</span>
                     </div>
                     <p className="visual-disclaimer">Профессиональная визуализация пространства и зонирования</p>
                     <div className="floor-plan-wrap">
                       <Plan />
                     </div>
                     <div className="plan-stats-row">
-                      <div className="plan-stat"><Ruler size={14}/> <span>Потолки <strong>2.9м</strong></span></div>
-                      <div className="plan-stat"><ShieldCheck size={14}/> <span>Стены <strong>Кирпич</strong></span></div>
+                      <div className="plan-stat"><Ruler size={14} /> <span>Потолки <strong>2.9м</strong></span></div>
+                      <div className="plan-stat"><ShieldCheck size={14} /> <span>Стены <strong>Кирпич</strong></span></div>
                     </div>
                   </div>
                 );
               }
-              
+
               // Render specs panel using product.details (provided by backend with mocks)
               if (specEntries.length > 0) {
                 return (
@@ -713,8 +713,8 @@ export default function ProductPage() {
                     <div className="condition-grid">
                       {specEntries.map(([k, v]) => (
                         <div className="condition-card" key={k}>
-                           <span className="c-label">{k}</span>
-                           <span className="c-value">{String(v)}</span>
+                          <span className="c-label">{k}</span>
+                          <span className="c-value">{String(v)}</span>
                         </div>
                       ))}
                     </div>
@@ -780,7 +780,7 @@ export default function ProductPage() {
           <form className="review-form" onSubmit={handleReviewSubmit}>
             <h3>{isEditingReview ? 'Редактировать отзыв' : 'Оставить отзыв'}</h3>
             <div className="star-picker">
-              {[1,2,3,4,5].map(n => (
+              {[1, 2, 3, 4, 5].map(n => (
                 <button type="button" key={n}
                   className={`star-btn${reviewForm.rating >= n ? ' active' : ''}`}
                   onClick={() => setReviewForm({ ...reviewForm, rating: n })}>★</button>
@@ -793,7 +793,7 @@ export default function ProductPage() {
               rows={4}
               className="review-textarea"
             />
-            
+
             <div className="review-photo-upload">
               <label className="rev-upload-label">
                 <Camera size={20} />
@@ -804,7 +804,7 @@ export default function ProductPage() {
                 {(reviewForm.images?.length || 0) + reviewPhotos.length}/{REVIEW_MAX_FILES} · jpg, png, gif, mp4, mov · до 50MB
               </span>
               {reviewPhotoError && <p className="rev-upload-error">{reviewPhotoError}</p>}
-              
+
               <div className="rev-photo-previews">
                 {/* Existing photos (from edit) */}
                 {reviewForm.images?.map((img, idx) => (
@@ -813,14 +813,14 @@ export default function ProductPage() {
                       ? <video src={`http://localhost:3000${img}`} />
                       : <img src={`http://localhost:3000${img}`} alt="" />
                     }
-                    <button type="button" className="rev-remove" onClick={() => { setReviewForm(prev => ({...prev, images: prev.images.filter((_, i) => i !== idx)})); setReviewPhotoError(''); }}><X size={12}/></button>
+                    <button type="button" className="rev-remove" onClick={() => { setReviewForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) })); setReviewPhotoError(''); }}><X size={12} /></button>
                   </div>
                 ))}
                 {/* New local photos */}
                 {reviewPhotos.map((p, idx) => (
                   <div key={`new-${idx}`} className="rev-preview-box">
                     {p.isVideo ? <video src={p.url} /> : <img src={p.url} alt="" />}
-                    <button type="button" className="rev-remove" onClick={() => removeReviewPhoto(idx)}><X size={12}/></button>
+                    <button type="button" className="rev-remove" onClick={() => removeReviewPhoto(idx)}><X size={12} /></button>
                   </div>
                 ))}
               </div>
@@ -857,7 +857,7 @@ export default function ProductPage() {
               </div>
               <button className="btn-close-modal" onClick={() => setShowBuyModal(false)}><X size={20} /></button>
             </div>
-            
+
             <div className="modal-body">
               {bought ? (
                 <div className="modal-success-state step-fade-in">
@@ -880,10 +880,10 @@ export default function ProductPage() {
                   {buyStep === 1 && (
                     <div className="modal-section step-fade-in">
                       <p className="confirm-msg">
-                        Вы подтверждаете покупку объявления <strong>«{product.title}»</strong>? 
+                        Вы подтверждаете покупку объявления <strong>«{product.title}»</strong>?
                       </p>
                       <p className="confirm-hint">
-                        {['services', 'items', 'clothing'].includes(product.category_id) 
+                        {['services', 'items', 'clothing'].includes(product.category_id)
                           ? 'На следующем шаге вам нужно будет указать адрес.'
                           : 'После подтверждения продавец получит уведомление.'}
                       </p>
@@ -894,39 +894,39 @@ export default function ProductPage() {
                     <div className="modal-section step-fade-in">
                       <h3>Адрес {product.category_id === 'services' ? 'выезда специалиста' : 'доставки'}</h3>
                       <div className="house-type-toggle">
-                        <button 
+                        <button
                           className={`house-toggle-btn ${buyForm.houseType === 'apartment' ? 'active' : ''}`}
-                          onClick={() => setBuyForm(p => ({...p, houseType: 'apartment'}))}
+                          onClick={() => setBuyForm(p => ({ ...p, houseType: 'apartment' }))}
                         >Квартира</button>
-                        <button 
+                        <button
                           className={`house-toggle-btn ${buyForm.houseType === 'private' ? 'active' : ''}`}
-                          onClick={() => setBuyForm(p => ({...p, houseType: 'private'}))}
+                          onClick={() => setBuyForm(p => ({ ...p, houseType: 'private' }))}
                         >Частный дом</button>
                       </div>
 
                       <div className="form-grid">
                         <div className="form-field full">
                           <label className="form-label">Улица</label>
-                          <input className="form-input" placeholder="Название улицы" value={buyForm.street} onChange={e => setBuyForm(p => ({...p, street: e.target.value}))} />
+                          <input className="form-input" placeholder="Название улицы" value={buyForm.street} onChange={e => setBuyForm(p => ({ ...p, street: e.target.value }))} />
                         </div>
                         <div className="form-field">
                           <label className="form-label">Дом</label>
-                          <input className="form-input" placeholder="№" value={buyForm.house} onChange={e => setBuyForm(p => ({...p, house: e.target.value}))} />
+                          <input className="form-input" placeholder="№" value={buyForm.house} onChange={e => setBuyForm(p => ({ ...p, house: e.target.value }))} />
                         </div>
-                        
+
                         {buyForm.houseType === 'apartment' && (
                           <>
                             <div className="form-field">
                               <label className="form-label">Подъезд</label>
-                              <input className="form-input" placeholder="№" value={buyForm.entrance} onChange={e => setBuyForm(p => ({...p, entrance: e.target.value}))} />
+                              <input className="form-input" placeholder="№" value={buyForm.entrance} onChange={e => setBuyForm(p => ({ ...p, entrance: e.target.value }))} />
                             </div>
                             <div className="form-field">
                               <label className="form-label">Этаж</label>
-                              <input className="form-input" placeholder="№" value={buyForm.floor} onChange={e => setBuyForm(p => ({...p, floor: e.target.value}))} />
+                              <input className="form-input" placeholder="№" value={buyForm.floor} onChange={e => setBuyForm(p => ({ ...p, floor: e.target.value }))} />
                             </div>
                             <div className="form-field">
                               <label className="form-label">Квартира</label>
-                              <input className="form-input" placeholder="№" value={buyForm.apartment} onChange={e => setBuyForm(p => ({...p, apartment: e.target.value}))} />
+                              <input className="form-input" placeholder="№" value={buyForm.apartment} onChange={e => setBuyForm(p => ({ ...p, apartment: e.target.value }))} />
                             </div>
                           </>
                         )}
@@ -937,26 +937,26 @@ export default function ProductPage() {
                   {buyStep === 3 && (
                     <div className="modal-section step-fade-in">
                       <h3>Дата и время (12:00 - 20:00)</h3>
-                      <input 
-                        type="date" 
-                        className="form-input date-selector" 
+                      <input
+                        type="date"
+                        className="form-input date-selector"
                         min={new Date().toISOString().split('T')[0]}
                         value={buyForm.date}
-                        onChange={e => setBuyForm(p => ({...p, date: e.target.value, time: ''}))}
+                        onChange={e => setBuyForm(p => ({ ...p, date: e.target.value, time: '' }))}
                       />
                       <div className="time-slots">
                         {['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(t => (
-                          <button 
+                          <button
                             key={t}
                             className={`time-slot-btn ${buyForm.time === t ? 'selected' : ''}`}
                             disabled={fullSlots.includes(t) || checkingSlots}
-                            onClick={() => setBuyForm(p => ({...p, time: t}))}
+                            onClick={() => setBuyForm(p => ({ ...p, time: t }))}
                           >
                             {t}
                           </button>
                         ))}
                       </div>
-                      {checkingSlots && <p className="auction-meta" style={{marginTop: 8}}>Проверка доступности...</p>}
+                      {checkingSlots && <p className="auction-meta" style={{ marginTop: 8 }}>Проверка доступности...</p>}
                     </div>
                   )}
                 </>
@@ -968,8 +968,8 @@ export default function ProductPage() {
                 <div className="price-summary">
                   <span className="price-summary-label">К оплате:</span>
                   <span className="price-summary-val">
-                    {product.category_id === 'rent' 
-                      ? (product.price * rentHours).toLocaleString('ru-RU') 
+                    {product.category_id === 'rent'
+                      ? (product.price * rentHours).toLocaleString('ru-RU')
                       : (product.sale_type === 'auction' && product.auction_high_bid ? product.auction_high_bid : product.price).toLocaleString('ru-RU')} ₽
                   </span>
                 </div>
@@ -980,7 +980,7 @@ export default function ProductPage() {
                   <button className="btn-confirm-buy" onClick={handleModalNext} disabled={buying}>
                     {buying ? 'Оформление...' : (
                       (buyStep === 1 && ['services', 'items', 'clothing'].includes(product.category_id)) ? 'Продолжить' :
-                      (buyStep === 2 && product.category_id === 'services') ? 'Продолжить' : 'Подтвердить заказ'
+                        (buyStep === 2 && product.category_id === 'services') ? 'Продолжить' : 'Подтвердить заказ'
                     )}
                   </button>
                 </div>
