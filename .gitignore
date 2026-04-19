@@ -1,7 +1,6 @@
 node_modules/
 frontend/dist/
 frontend/node_modules/.vite/
-backend/uploads/
 .env
 .env.local
 .DS_Store
