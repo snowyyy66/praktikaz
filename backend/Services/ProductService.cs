@@ -60,6 +60,29 @@ public class ProductService : IProductService
         var isFavorite = userId.HasValue && await _favoriteRepository.IsFavoriteAsync(userId.Value, product.id);
         var dto = MapToDto(product, seller?.username ?? "Unknown", isFavorite);
 
+        // Fill auction bid stats
+        if (product.sale_type == "auction")
+        {
+            var bids = await _auctionRepository.GetBidsAsync(id);
+            var bidList = bids.ToList();
+            dto.auction_bids_count = bidList.Count;
+
+            var topBid = await _auctionRepository.GetTopBidAsync(id);
+            if (topBid != null)
+            {
+                dto.auction_high_bid = topBid.amount;
+                dto.auction_leader_id = topBid.bidder_id;
+                var leader = await _userRepository.GetByIdAsync(topBid.bidder_id);
+                dto.auction_leader_name = leader?.username;
+                dto.auction_min_next_bid = topBid.amount + product.auction_step;
+            }
+            else
+            {
+                dto.auction_min_next_bid = product.price;
+            }
+        }
+
+
         if (userId.HasValue && userId.Value != product.seller_id)
         {
             dto.can_review = await _reviewRepository.HasPurchasedAsync(userId.Value, product.id);
@@ -199,6 +222,18 @@ public class ProductService : IProductService
                 imagesObj = JsonSerializer.Deserialize<object>(p.images) ?? new string[] { }; 
         } catch { }
 
+        // Auction logic
+        bool auctionLive = false;
+        bool auctionEnded = false;
+        if (p.sale_type == "auction" && !string.IsNullOrEmpty(p.auction_ends_at))
+        {
+            if (DateTime.TryParse(p.auction_ends_at, null, System.Globalization.DateTimeStyles.AssumeUniversal, out var endsAt))
+            {
+                auctionLive = endsAt > DateTime.UtcNow;
+                auctionEnded = endsAt <= DateTime.UtcNow;
+            }
+        }
+
         return new ProductResponseDto
         {
             id = p.id,
@@ -216,7 +251,12 @@ public class ProductService : IProductService
             is_favorite = isFavorite,
             details = detailsObj,
             images = imagesObj,
-            sale_type = p.sale_type
+            sale_type = p.sale_type,
+            // Auction fields
+            auction_ends_at = p.auction_ends_at,
+            auction_step = p.auction_step,
+            auction_live = auctionLive,
+            auction_ended = auctionEnded,
         };
     }
 }

@@ -93,7 +93,7 @@ export const api = {
   likeProduct: (id) => fetchApi(`/products/${id}/like`, { method: 'POST' }),
   /** Обновить объявление */
   updateProduct: (id, data, actorId = getUserId()) => fetchApi(`/products/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: JSON.stringify({ ...data, seller_id: data?.seller_id ?? getUserId(), actor_id: actorId })
   }),
   /** Снять объявление с публикации (мягкое удаление) */
@@ -137,7 +137,7 @@ export const api = {
   getUserFavorites: (userId) => fetchApi(`/users/${userId}/favorites`),
   /** Добавить/убрать товар в избранном (переключатель) */
   toggleFavorite: (userId, productId) => 
-    fetchApi('/favorites', {
+    fetchApi('/favorites/toggle', {
       method: 'POST',
       body: JSON.stringify({ user_id: userId, product_id: productId })
     }),

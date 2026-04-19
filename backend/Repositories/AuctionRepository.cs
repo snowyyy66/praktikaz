@@ -9,6 +9,7 @@ public interface IAuctionRepository
     Task<IEnumerable<dynamic>> GetBidsAsync(long productId);
     Task AddBidAsync(AuctionBid bid);
     Task<long> GetHighBidAsync(long productId);
+    Task<AuctionBid?> GetTopBidAsync(long productId);
 }
 
 public class AuctionRepository : IAuctionRepository
@@ -21,11 +22,12 @@ public class AuctionRepository : IAuctionRepository
         return await (from b in _context.AuctionBids
                       join u in _context.Users on b.bidder_id equals u.id
                       where b.product_id == productId
-                      orderby b.created_at descending, b.id descending
+                      orderby b.amount descending, b.id descending
                       select new
                       {
                           b.id,
                           b.amount,
+                          b.bidder_id,
                           b.created_at,
                           bidder_name = u.username
                       }).Take(30).ToListAsync();
@@ -44,5 +46,14 @@ public class AuctionRepository : IAuctionRepository
             .Select(b => b.amount)
             .DefaultIfEmpty(0)
             .MaxAsync();
+    }
+
+    public async Task<AuctionBid?> GetTopBidAsync(long productId)
+    {
+        return await _context.AuctionBids
+            .Where(b => b.product_id == productId)
+            .OrderByDescending(b => b.amount)
+            .ThenByDescending(b => b.id)
+            .FirstOrDefaultAsync();
     }
 }

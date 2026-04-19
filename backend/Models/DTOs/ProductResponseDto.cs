@@ -21,4 +21,16 @@ public class ProductResponseDto
     public bool show_reviews_on_page { get; set; } = true;
     public bool can_review { get; set; }
     public object? user_review { get; set; }
+
+    // Auction fields
+    public string? auction_ends_at { get; set; }
+    public long auction_step { get; set; }
+    public bool auction_live { get; set; }
+    public bool auction_ended { get; set; }
+    public long? auction_high_bid { get; set; }
+    public long? auction_leader_id { get; set; }
+    public string? auction_leader_name { get; set; }
+    public long? auction_min_next_bid { get; set; }
+    public int auction_bids_count { get; set; }
 }
+
