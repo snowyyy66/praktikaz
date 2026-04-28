@@ -160,7 +160,6 @@ function PublicProfilePage() {
           )}
         </div>
 
-        </div>
 
         {purchasedProducts.length > 0 && (
           <div className="pending-reviews-card animate-slide-up">
@@ -222,7 +221,7 @@ function PublicProfilePage() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 export default PublicProfilePage;

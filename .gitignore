@@ -1,6 +1,23 @@
+# Node
 node_modules/
 frontend/dist/
-frontend/node_modules/.vite/
+
+# .NET build output
+backend/bin/
+backend/obj/
+backend.Tests/bin/
+backend.Tests/obj/
+
+# Environment
 .env
 .env.local
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
